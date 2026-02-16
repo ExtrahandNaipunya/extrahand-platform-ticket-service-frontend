@@ -77,6 +77,32 @@ export default function SupervisorSidebar() {
                         }`} />
                     Team Performance
                 </Link>
+
+                <div className="my-2 border-t border-gray-100 mx-2"></div>
+
+                <Link
+                    href="/analytics"
+                    className={`flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group ${pathname === '/analytics'
+                        ? 'bg-amber-50 text-amber-700 shadow-sm border border-amber-100'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        }`}
+                >
+                    <BarChart3 className={`h-5 w-5 mr-3 transition-transform group-hover:scale-110 ${pathname === '/analytics' ? 'text-amber-600' : 'text-gray-400 group-hover:text-amber-600'
+                        }`} />
+                    Analytics
+                </Link>
+
+                <Link
+                    href="/knowledge-base"
+                    className={`flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group ${pathname === '/knowledge-base'
+                        ? 'bg-amber-50 text-amber-700 shadow-sm border border-amber-100'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        }`}
+                >
+                    <FileText className={`h-5 w-5 mr-3 transition-transform group-hover:scale-110 ${pathname === '/knowledge-base' ? 'text-amber-600' : 'text-gray-400 group-hover:text-amber-600'
+                        }`} />
+                    Knowledge Base
+                </Link>
             </nav>
 
             {/* Footer */}

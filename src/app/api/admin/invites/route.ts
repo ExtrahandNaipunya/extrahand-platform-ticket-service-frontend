@@ -55,8 +55,51 @@ export async function POST(request: NextRequest) {
             status: 'pending',
         });
 
-        // In a real application, you would send an email here with the link:
-        // https://your-domain.com/accept-invite?token=...
+        // Call Backend API to Create User + Send Email
+        try {
+            const backendUrl = 'http://localhost:8001/api/admin/invite';
+            const serviceAuthToken = process.env.SERVICE_AUTH_TOKEN || 'ExtraHand_Secure_Token_2024_MinLength32Chars_ChangeInProduction';
+
+            console.log('[NextAPI] calling backend invite:', backendUrl);
+
+            // We assume backend creates "User" status=pending
+            const backendResponse = await fetch(backendUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-service-auth': serviceAuthToken // Add if needed by backend middleware? Backend doesn't use it on this route though.
+                },
+                body: JSON.stringify({
+                    email: email.toLowerCase(),
+                    role,
+                    team,
+                    department,
+                })
+            });
+
+            if (!backendResponse.ok) {
+                const errorText = await backendResponse.text();
+                console.error('[NextAPI] Backend invite failed:', errorText);
+
+                // Rollback: delete the invite we just created so the user can try again
+                await Invite.findByIdAndDelete(newInvite._id);
+
+                return NextResponse.json(
+                    { error: `Backend failed: ${errorText}` },
+                    { status: backendResponse.status }
+                );
+            } else {
+                console.log('[NextAPI] Backend invite success');
+            }
+        } catch (bkError) {
+            console.error('[NextAPI] Failed to call backend:', bkError);
+            // Rollback on connection error too
+            await Invite.findByIdAndDelete(newInvite._id);
+            return NextResponse.json(
+                { error: 'Failed to connect to backend service' },
+                { status: 502 }
+            );
+        }
 
         return NextResponse.json({
             message: 'Invite created successfully',

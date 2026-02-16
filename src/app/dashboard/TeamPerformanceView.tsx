@@ -1,13 +1,17 @@
 
 import { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, Users, Clock, Award, Star, ArrowUpRight, ArrowDownRight, MessageSquare, Target, Zap, Activity, ShieldCheck, Search, Filter, Download } from 'lucide-react';
+import { formatDateTimeToIST } from '../../lib/dateUtils';
 
 interface AgentStats {
     agent_email: string;
     name: string;
     total_chats: number;
+    resolved_chats: number;
+    resolution_rate: number;
     avg_rating: string;
     avg_duration: string;
+    last_active?: string | null;
 }
 
 const TeamPerformanceView = () => {
@@ -35,7 +39,8 @@ const TeamPerformanceView = () => {
                         // Add name field from email
                         const agentsWithNames = data.agents.map((agent: any) => ({
                             ...agent,
-                            name: agent.agent_email.split('@')[0]
+                            name: agent.agent_email.split('@')[0],
+                            last_active: agent.last_active || null
                         }));
                         setAgents(agentsWithNames);
                         setFilteredAgents(agentsWithNames);
@@ -144,61 +149,66 @@ const TeamPerformanceView = () => {
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="border-b border-gray-100">
-                                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rank & Identity</th>
-                                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Volume</th>
-                                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Satisfaction</th>
-                                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">SLA Performance</th>
-                                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Trend</th>
+                                    <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Rank & Identity</th>
+                                    <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Volume</th>
+                                    <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Success Rate</th>
+                                    <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Satisfaction</th>
+                                    <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Avg Resolution</th>
+                                    <th className="px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Last Seen</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {isLoading ? (
                                     <tr>
-                                        <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                                        <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
                                             Loading data...
                                         </td>
                                     </tr>
                                 ) : sortedByRating.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                                        <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
                                             {searchQuery ? 'No agents found matching your search' : 'No agent performance data available'}
                                         </td>
                                     </tr>
                                 ) : (
                                     sortedByRating.map((agent, index) => (
-                                        <tr key={agent.agent_email} className="hover:bg-gray-50/50 transition-colors border-b border-gray-50 last:border-0">
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center space-x-4">
-                                                    <span className={`text-lg font-bold w-8 ${index === 0 ? 'text-amber-500' : 'text-gray-300'}`}>
-                                                        #{String(index + 1).padStart(2, '0')}
-                                                    </span>
+                                        <tr key={agent.agent_email} className="hover:bg-gray-50/50 transition-colors border-b border-gray-50 last:border-0 group">
+                                            <td className="px-4 py-3">
+                                                <div className="flex items-center space-x-3">
+                                                    <div className="flex-shrink-0 h-8 w-8 rounded-full bg-amber-50 flex items-center justify-center border border-amber-100 font-bold text-amber-600 text-xs">
+                                                        #{index + 1}
+                                                    </div>
                                                     <div>
-                                                        <div className="font-bold text-gray-900">{agent.name}</div>
-                                                        <div className="text-xs text-gray-400 font-medium uppercase">{agent.agent_email}</div>
+                                                        <div className="font-bold text-gray-900 text-sm tracking-tight">{agent.name}</div>
+                                                        <div className="text-[10px] text-gray-400 font-medium">{agent.agent_email}</div>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 text-center">
-                                                <div className="font-bold text-gray-900 text-lg">{agent.total_chats}</div>
-                                                <div className="text-xs text-gray-400 font-medium uppercase tracking-wide">Sessions</div>
-                                            </td>
-                                            <td className="px-6 py-4 text-center">
-                                                <div className="inline-flex items-center space-x-1.5">
-                                                    <Star className="h-4 w-4 text-amber-400 fill-current" />
-                                                    <span className="font-bold text-gray-900 text-lg">{agent.avg_rating}</span>
+                                            <td className="px-4 py-3 text-center">
+                                                <div className="font-bold text-gray-900 text-base">
+                                                    {agent.resolved_chats} <span className="text-xs font-medium text-gray-400">/ {agent.total_chats}</span>
                                                 </div>
-                                                <div className="w-full bg-gray-100 h-1.5 rounded-full mt-2 overflow-hidden max-w-[100px] mx-auto">
-                                                    <div className="bg-amber-400 h-full rounded-full" style={{ width: `${(parseFloat(agent.avg_rating) / 5) * 100}%` }}></div>
+                                                <div className="text-[9px] text-gray-400 font-bold uppercase tracking-wide">Resolved / Total</div>
+                                            </td>
+                                            <td className="px-4 py-3 text-center">
+                                                <div className={`font-black text-base ${agent.resolution_rate >= 80 ? 'text-green-600' : agent.resolution_rate >= 50 ? 'text-amber-600' : 'text-red-600'}`}>
+                                                    {agent.resolution_rate}<span className="text-gray-400 font-bold ml-0.5">%</span>
+                                                </div>
+                                                <div className="text-[9px] text-gray-400 font-bold uppercase tracking-wide">Success Rate</div>
+                                            </td>
+                                            <td className="px-4 py-3 text-center">
+                                                <div className="inline-flex items-center space-x-1">
+                                                    <Star className="h-3.5 w-3.5 text-amber-400 fill-current" />
+                                                    <span className="font-bold text-gray-900 text-base">{agent.avg_rating}</span>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 text-center">
-                                                <div className="font-bold text-gray-900 text-lg">{agent.avg_duration}</div>
-                                                <div className="text-xs text-gray-400 font-medium uppercase tracking-wide">Avg Resolution</div>
+                                            <td className="px-4 py-3 text-center">
+                                                <div className="font-bold text-gray-900 text-base">{agent.avg_duration}</div>
+                                                <div className="text-[9px] text-gray-400 font-bold uppercase tracking-wide">Avg Duration</div>
                                             </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-50 text-green-600">
-                                                    <ArrowUpRight className="h-3 w-3 mr-1" />
-                                                    Steady
+                                            <td className="px-4 py-3 text-right">
+                                                <div className="text-[10px] text-gray-500 font-medium">
+                                                    {agent.last_active ? formatDateTimeToIST(agent.last_active) : 'Never'}
                                                 </div>
                                             </td>
                                         </tr>

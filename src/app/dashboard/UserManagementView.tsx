@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Search, MoreVertical, Trash2, Edit2, Eye, CheckCircle, AlertCircle, Plus, ChevronDown, Key, Ban, RefreshCw, UserPlus, Users, UserCheck, UserX, TrendingUp } from 'lucide-react';
-import { formatDateToIST } from '../../lib/dateUtils';
+import { formatDateToIST, formatDateTimeToIST } from '../../lib/dateUtils';
 
 interface User {
     _id: string;
@@ -29,6 +29,55 @@ const UserManagementView = ({ onNavigate }: UserManagementViewProps) => {
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [newPassword, setNewPassword] = useState('');
+
+    // Invite Modal State
+    const [showInviteModal, setShowInviteModal] = useState(false);
+    const [inviteEmail, setInviteEmail] = useState('');
+    const [inviteRole, setInviteRole] = useState('user');
+    const [inviteTeam, setInviteTeam] = useState('');
+    const [inviteDepartment, setInviteDepartment] = useState('');
+    const [isInviting, setIsInviting] = useState(false);
+
+    const handleInvite = async () => {
+        if (!inviteEmail) {
+            alert('Email is required');
+            return;
+        }
+
+        setIsInviting(true);
+        try {
+            const response = await fetch('http://localhost:8001/api/admin/invite', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: inviteEmail,
+                    role: inviteRole,
+                    team: inviteTeam,
+                    department: inviteDepartment
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert(data.message || 'Invitation sent successfully');
+                setShowInviteModal(false);
+                setInviteEmail('');
+                setInviteRole('user');
+                setInviteTeam('');
+                setInviteDepartment('');
+                fetchUsers(); // Refresh list to see pending user
+            } else {
+                alert(data.error || 'Failed to send invitation');
+            }
+        } catch (error) {
+            console.error('Invite error:', error);
+            alert('Failed to send invitation. Please try again.');
+        } finally {
+            setIsInviting(false);
+        }
+    };
+
     const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
     // Stats
@@ -275,11 +324,11 @@ const UserManagementView = ({ onNavigate }: UserManagementViewProps) => {
                                 <RefreshCw className="h-4 w-4" />
                             </button>
                             <button
-                                onClick={() => onNavigate('admin_invite')}
+                                onClick={() => setShowInviteModal(true)}
                                 className="flex items-center px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors shadow-sm shadow-amber-200"
                             >
                                 <UserPlus className="h-4 w-4 mr-2" />
-                                Add User
+                                Create Invite
                             </button>
                         </div>
                     </div>
@@ -343,8 +392,8 @@ const UserManagementView = ({ onNavigate }: UserManagementViewProps) => {
                                             <td className="px-4 py-2 text-xs text-gray-500">
                                                 {formatDateToIST(user.createdAt)}
                                             </td>
-                                            <td className="px-4 py-2 text-xs text-green-600 font-medium">
-                                                {user.lastActive ? 'Today' : 'Never'}
+                                            <td className="px-4 py-2 text-xs text-gray-700 font-medium">
+                                                {user.lastActive ? formatDateTimeToIST(user.lastActive) : 'Never'}
                                             </td>
                                             <td className="px-4 py-2 text-right">
                                                 <div className="flex items-center justify-end gap-2 relative">
@@ -403,18 +452,96 @@ const UserManagementView = ({ onNavigate }: UserManagementViewProps) => {
                             </tbody>
                         </table>
                     </div>
-                    {/* Pagination - Visual Only for now */}
-                    <div className="px-4 py-2 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
-                        <div className="text-xs text-gray-500">
-                            Showing 1 to {filteredUsers.length} of {filteredUsers.length} users
-                        </div>
-                        <div className="flex gap-2">
-                            <button className="px-2 py-1 text-xs border border-gray-200 rounded bg-white text-gray-400 cursor-not-allowed">Previous</button>
-                            <button className="px-2 py-1 text-xs border border-gray-200 rounded bg-white text-gray-400 cursor-not-allowed">Next</button>
+                </div>
+            </div>
+            {/* Invite Modal (New) */}
+            {showInviteModal && (
+                <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl transform transition-all">
+                        <div className="p-6">
+                            <div className="flex justify-between items-start mb-6">
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-900">Create Admin Invite</h2>
+                                    <p className="text-gray-500 text-sm mt-1">Send an invite email to a new admin user. They can login with any Microsoft account.</p>
+                                </div>
+                                <button onClick={() => setShowInviteModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                                    <ChevronDown className="h-6 w-6 transform rotate-180" />
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-semibold text-gray-700">Email *</label>
+                                    <input
+                                        type="email"
+                                        placeholder="user@example.com"
+                                        value={inviteEmail}
+                                        onChange={(e) => setInviteEmail(e.target.value)}
+                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-shadow"
+                                    />
+                                    <p className="text-xs text-gray-400">For notification only</p>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-semibold text-gray-700">Role *</label>
+                                    <div className="relative">
+                                        <select
+                                            value={inviteRole}
+                                            onChange={(e) => setInviteRole(e.target.value)}
+                                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg appearance-none bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-shadow cursor-pointer"
+                                        >
+                                            <option value="user">Agent</option>
+                                            <option value="supervisor">Supervisor</option>
+                                            <option value="admin">Admin</option>
+                                        </select>
+                                        <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-semibold text-gray-700">Team (Optional)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Onboarding Team"
+                                        value={inviteTeam}
+                                        onChange={(e) => setInviteTeam(e.target.value)}
+                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-shadow"
+                                    />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-semibold text-gray-700">Department (Optional)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Operations"
+                                        value={inviteDepartment}
+                                        onChange={(e) => setInviteDepartment(e.target.value)}
+                                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-shadow"
+                                    />
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={handleInvite}
+                                disabled={isInviting}
+                                className={`w-auto px-6 py-3 bg-amber-400 hover:bg-amber-500 text-white font-semibold rounded-lg shadow-lg shadow-amber-200 transition-all flex items-center justify-center ${isInviting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                            >
+                                {isInviting ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                                        Sending Invite...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Plus className="h-5 w-5 mr-2" />
+                                        Create & Send Invite
+                                    </>
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Change Password Modal */}
             {showPasswordModal && selectedUser && (

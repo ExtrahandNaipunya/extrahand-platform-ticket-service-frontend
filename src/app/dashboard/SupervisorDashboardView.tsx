@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { BarChart3, Users, Clock, TrendingUp, AlertCircle, CheckCircle, XCircle, Download, Filter, Calendar, MessageSquare, Activity, Globe, Headphones, ArrowUpRight, Search, Eye, Star, Zap } from 'lucide-react';
-import { formatToIST, formatTimeAgo } from '../../lib/dateUtils';
+import { formatToIST, formatTimeAgo, formatDateTimeToIST } from '../../lib/dateUtils';
 
 interface TicketStats {
     total: number;
@@ -15,9 +15,11 @@ interface TeamMember {
     email: string;
     name: string;
     activeChats: number;
-    totalResolved: number;
+    totalChats: number;
+    resolvedCount: number;
     avgRating: number;
     status: 'online' | 'offline' | 'busy';
+    lastActive?: string | null;
 }
 
 interface RecentTicket {
@@ -73,9 +75,11 @@ const SupervisorDashboardView = ({ onNavigate }: SupervisorDashboardViewProps) =
                         email: member.email,
                         name: member.name,
                         activeChats: member.activeChats || 0,
-                        totalResolved: member.totalResolved || 0,
+                        totalChats: member.totalChats || 0,
+                        resolvedCount: member.resolvedCount || 0,
                         avgRating: member.avgRating || 0,
-                        status: member.status as 'online' | 'offline' | 'busy'
+                        status: member.status as 'online' | 'offline' | 'busy',
+                        lastActive: member.lastActive || null
                     }));
                     setTeamMembers(mappedTeam);
                 } else {
@@ -156,12 +160,12 @@ const SupervisorDashboardView = ({ onNavigate }: SupervisorDashboardViewProps) =
             doc.text('Team Performance Matrix', 15, yPos);
             yPos += 5;
 
-            const teamHeaders = [['Agent Name', 'Status', 'Active Chats', 'Total Resolved', 'Avg Rating']];
+            const teamHeaders = [['Agent Name', 'Status', 'Active Chats', 'Total / Resolved', 'Avg Rating']];
             const teamData = teamMembers.map(m => [
                 m.name,
                 m.status.toUpperCase(),
                 m.activeChats.toString(),
-                m.totalResolved.toString(),
+                `${m.totalChats} / ${m.resolvedCount}`,
                 m.avgRating.toFixed(1)
             ]);
 
@@ -271,14 +275,14 @@ const SupervisorDashboardView = ({ onNavigate }: SupervisorDashboardViewProps) =
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                             <div className="px-6 py-5 border-b border-gray-50 flex justify-between items-center bg-gray-50/30">
                                 <div className="flex items-center space-x-3">
-                                    <div className="p-2 bg-amber-50 rounded-lg">
-                                        <Users className="h-5 w-5 text-amber-600" />
+                                    <div className="p-2 bg-amber-50/50 rounded-lg border border-amber-100/50">
+                                        <Users className="h-5 w-5 text-amber-500/60" />
                                     </div>
                                     <h3 className="font-bold text-gray-900 tracking-tight">Team Performance Matrix</h3>
                                 </div>
                                 <button
                                     onClick={handleExpandView}
-                                    className="text-xs font-bold text-amber-600 hover:text-amber-700 uppercase tracking-wider cursor-pointer"
+                                    className="text-xs font-bold text-amber-500/80 hover:text-amber-600 uppercase tracking-wider cursor-pointer transition-colors"
                                 >
                                     Expand View
                                 </button>
@@ -313,14 +317,22 @@ const SupervisorDashboardView = ({ onNavigate }: SupervisorDashboardViewProps) =
                                                     <td className="px-6 py-4">
                                                         <div className="flex items-center">
                                                             <div className="relative">
-                                                                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white font-black shadow-md">
+                                                                <div className="h-10 w-10 rounded-xl bg-amber-50/50 border border-amber-100/50 flex items-center justify-center text-amber-600/60 font-black">
                                                                     {member.name.charAt(0).toUpperCase()}
                                                                 </div>
                                                                 <div className={`absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-white ${member.status === 'online' ? 'bg-green-500' : member.status === 'busy' ? 'bg-amber-500' : 'bg-gray-300'}`}></div>
                                                             </div>
                                                             <div className="ml-4">
-                                                                <div className="font-bold text-gray-900 group-hover:text-amber-600 transition-colors">{member.name}</div>
-                                                                <div className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">{member.status}</div>
+                                                                <div className="font-bold text-gray-900 transition-colors group-hover:text-amber-600">{member.name}</div>
+                                                                <div className="flex items-center space-x-2">
+                                                                    <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{member.status}</div>
+                                                                    {member.status === 'offline' && member.lastActive && (
+                                                                        <>
+                                                                            <span className="text-[10px] text-gray-300">•</span>
+                                                                            <div className="text-[9px] text-gray-400 font-medium">Seen {formatDateTimeToIST(member.lastActive)}</div>
+                                                                        </>
+                                                                    )}
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </td>
@@ -333,18 +345,22 @@ const SupervisorDashboardView = ({ onNavigate }: SupervisorDashboardViewProps) =
                                                     <td className="px-6 py-4">
                                                         <div className="flex flex-col items-center justify-center">
                                                             <div className="flex items-center space-x-1 mb-1">
-                                                                <Star className="h-3 w-3 text-amber-400 fill-current" />
+                                                                <Star className="h-3 w-3 text-gray-400 fill-current" />
                                                                 <span className="text-sm font-black text-gray-900">{member.avgRating.toFixed(1)}</span>
                                                             </div>
                                                             <div className="w-16 h-1 bg-gray-100 rounded-full overflow-hidden">
-                                                                <div className="h-full bg-amber-400" style={{ width: `${(member.avgRating / 5) * 100}%` }}></div>
+                                                                <div className="h-full bg-gray-400" style={{ width: `${(member.avgRating / 5) * 100}%` }}></div>
                                                             </div>
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
                                                         <div className="flex flex-col items-end">
-                                                            <span className="text-xs font-bold text-gray-900">{member.totalResolved}</span>
-                                                            <span className="text-[10px] text-gray-400 font-medium uppercase">Resolved</span>
+                                                            <div className="flex items-center space-x-1">
+                                                                <span className="text-xs font-bold text-gray-900">{member.resolvedCount}</span>
+                                                                <span className="text-xs text-gray-400">/</span>
+                                                                <span className="text-xs text-gray-500">{member.totalChats}</span>
+                                                            </div>
+                                                            <span className="text-[10px] text-gray-400 font-medium uppercase">Resolved / Total</span>
                                                         </div>
                                                     </td>
                                                 </tr>

@@ -53,23 +53,48 @@ export async function POST(request: NextRequest) {
 
     let user = null;
 
-    // 1. Try Database
+    // 1. Try Backend API (Source of Truth for Invited Users)
     try {
-      await connectDB();
-      const dbUser = await User.findOne({ email: email.toLowerCase() });
+      const backendResponse = await fetch('http://localhost:8001/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
 
-      if (dbUser) {
-        const isMatch = await bcrypt.compare(password, dbUser.passwordHash);
-        if (isMatch) {
-          user = {
-            email: dbUser.email,
-            name: dbUser.name,
-            role: dbUser.role || 'agent'
-          };
-        }
+      if (backendResponse.ok) {
+        const data = await backendResponse.json();
+        user = {
+          email: data.user.email,
+          name: data.user.name,
+          role: data.user.role || 'agent'
+        };
+        console.log('Login success via Backend API for:', email);
+      } else {
+        console.log('Backend login failed:', await backendResponse.text());
       }
-    } catch (dbErr) {
-      console.error('Database login check failed:', dbErr);
+    } catch (apiErr) {
+      console.warn('Backend API login check failed (might be down):', apiErr);
+    }
+
+    // 2. Try Frontend Database (Legacy/Backup)
+    if (!user) {
+      try {
+        await connectDB();
+        const dbUser = await User.findOne({ email: email.toLowerCase() });
+
+        if (dbUser) {
+          const isMatch = await bcrypt.compare(password, dbUser.passwordHash);
+          if (isMatch) {
+            user = {
+              email: dbUser.email,
+              name: dbUser.name,
+              role: dbUser.role || 'agent'
+            };
+          }
+        }
+      } catch (dbErr) {
+        console.error('Frontend Database login check failed:', dbErr);
+      }
     }
 
     // 2. Try Hardcoded (Fallback/Dev)

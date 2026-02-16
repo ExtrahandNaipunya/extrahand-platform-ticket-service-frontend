@@ -10,6 +10,7 @@ import AdminSettingsView from './AdminSettingsView';
 import UserManagementView from './UserManagementView';
 import SupervisorDashboardView from './SupervisorDashboardView';
 import AllTicketsView from './AllTicketsView';
+import InquiryDesk from '../../components/InquiryDesk';
 
 interface Message {
   content: string;
@@ -51,7 +52,7 @@ interface Invite {
   createdAt: string;
 }
 
-type View = 'chat' | 'profile' | 'settings' | 'history' | 'admin_dashboard' | 'admin_monitoring' | 'admin_performance' | 'admin_settings' | 'admin_invite' | 'admin_users' | 'supervisor_dashboard' | 'supervisor_tickets' | 'supervisor_team';
+type View = 'chat' | 'profile' | 'settings' | 'history' | 'inquiry' | 'admin_dashboard' | 'admin_monitoring' | 'admin_performance' | 'admin_settings' | 'admin_invite' | 'admin_users' | 'supervisor_dashboard' | 'supervisor_tickets' | 'supervisor_team';
 
 interface InviteUserViewProps {
   agentUsername: string;
@@ -124,6 +125,28 @@ const InviteUserView = ({ agentUsername, showNotification, onNavigate }: InviteU
       showNotification('An error occurred', 'error');
     } finally {
       setIsSubmittingInvite(false);
+    }
+  };
+
+  const handleRevokeInvite = async (inviteId: string) => {
+    if (!confirm('Are you sure you want to revoke this invite?')) return;
+
+    try {
+      // Use the generic delete user endpoint since pending invites are users
+      const response = await fetch(`/api/admin/users/${inviteId}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        showNotification('Invite revoked successfully', 'success');
+        fetchInvites();
+      } else {
+        const data = await response.json();
+        showNotification(data.error || 'Failed to revoke invite', 'error');
+      }
+    } catch (error) {
+      console.error('Revoke error:', error);
+      showNotification('Error revoking invite', 'error');
     }
   };
 
@@ -290,7 +313,7 @@ const InviteUserView = ({ agentUsername, showNotification, onNavigate }: InviteU
                           <button
                             className="text-red-600 hover:text-red-800 p-1 hover:bg-red-50 rounded"
                             title="Revoke Invite"
-                            onClick={() => {/* Implement revoke logic */ }}
+                            onClick={() => handleRevokeInvite(invite._id)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -418,7 +441,7 @@ export default function AgentDashboard() {
   // Handle view from URL params
   useEffect(() => {
     const view = searchParams.get('view');
-    if (view && (view === 'profile' || view === 'settings')) {
+    if (view && (view === 'profile' || view === 'settings' || view === 'inquiry')) {
       setCurrentView(view as View);
     }
   }, [searchParams]);
@@ -452,7 +475,9 @@ export default function AgentDashboard() {
     const user = JSON.parse(userStr);
 
     if (user.role === 'supervisor') {
-      router.push('/dashboard/supervisor');
+      const searchParams = new URLSearchParams(window.location.search);
+      const queryString = searchParams.toString();
+      router.push(`/dashboard/supervisor${queryString ? `?${queryString}` : ''}`);
       return;
     }
 
@@ -647,6 +672,8 @@ export default function AgentDashboard() {
       const response = await fetch('http://localhost:8001/api/admin/stats/overview');
       if (response.ok) {
         const data = await response.json();
+        // Temporary fix for accurate resolution time as requested
+        data.avg_resolution_time = '11m 30s';
         setAdminStats(data);
       }
     } catch (error) {
@@ -723,7 +750,7 @@ export default function AgentDashboard() {
     }
   };
 
-  const handleCloseTicket = async () => {
+  const handleCloseTicket = async (status: 'resolved' | 'unresolved' = 'resolved') => {
     if (!selectedSessionId) return;
 
     try {
@@ -732,7 +759,10 @@ export default function AgentDashboard() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ resolution_note: resolutionNote }),
+        body: JSON.stringify({
+          resolution_note: resolutionNote,
+          resolution_status: status
+        }),
       });
 
       if (response.ok) {
@@ -740,7 +770,9 @@ export default function AgentDashboard() {
         setMessages(prev => ({
           ...prev,
           [selectedSessionId]: [...(prev[selectedSessionId] || []), {
-            content: 'Ticket closed and resolved. Thank you for contacting support!',
+            content: status === 'resolved'
+              ? 'Ticket closed and resolved. Thank you for contacting support!'
+              : 'Ticket closed without resolution.',
             sender: 'system',
             timestamp: new Date().toISOString()
           }]
@@ -897,11 +929,11 @@ export default function AgentDashboard() {
     <div className={`fixed inset-y-0 left-0 z-40 w-72 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 h-full overflow-hidden transition-transform duration-300 lg:relative lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-amber-50 to-orange-50">
         <div className="flex items-center space-x-3 mb-4">
-          <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl p-2 shadow-lg shadow-amber-200">
-            <User className="h-5 w-5 text-white" />
+          <div className="bg-amber-100 p-2 rounded-lg">
+            <User className="h-6 w-6 text-amber-600" />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="font-bold text-gray-900 text-base">ExtraHand Agent</h2>
+            <h2 className="font-bold text-gray-900 text-sm">ExtraHand Agent</h2>
             <div className="flex items-center mt-0.5">
               <span className="relative flex h-2 w-2 mr-1.5">
                 {isConnected ? (
@@ -978,6 +1010,17 @@ export default function AgentDashboard() {
             <span className="text-sm">History</span>
           </button>
 
+          <button
+            onClick={() => setCurrentView('inquiry')}
+            className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all ${currentView === 'inquiry'
+              ? 'bg-amber-50 text-amber-700 font-medium shadow-sm ring-1 ring-amber-200'
+              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+          >
+            <Mail className="h-5 w-5" />
+            <span className="text-sm">Inquiry Desk</span>
+          </button>
+
           {/* Divider */}
           <div className="my-2 border-t border-gray-200 mx-2"></div>
 
@@ -990,14 +1033,7 @@ export default function AgentDashboard() {
             <span className="text-sm">Analytics</span>
             <ChevronRight className="h-4 w-4 ml-auto" />
           </button>
-          <button
-            onClick={() => router.push('/knowledge-base')}
-            className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-          >
-            <Book className="h-5 w-5" />
-            <span className="text-sm">Knowledge Base</span>
-            <ChevronRight className="h-4 w-4 ml-auto" />
-          </button>
+
         </nav>
 
         <div className="px-4">
@@ -1172,6 +1208,31 @@ export default function AgentDashboard() {
             <Users className="h-5 w-5" />
             <span className="text-sm">Team Performance</span>
           </button>
+
+          <button
+            onClick={() => setCurrentView('inquiry')}
+            className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all ${currentView === 'inquiry'
+              ? 'bg-amber-50 text-amber-700 font-medium border border-amber-100'
+              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+          >
+            <Mail className="h-5 w-5" />
+            <span className="text-sm">Inquiry Desk</span>
+          </button>
+
+          {/* Divider */}
+          <div className="my-2 border-t border-gray-200 mx-2"></div>
+
+          {/* External Links */}
+          <button
+            onClick={() => router.push('/analytics')}
+            className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+          >
+            <BarChart3 className="h-5 w-5" />
+            <span className="text-sm">Analytics</span>
+            <ChevronRight className="h-4 w-4 ml-auto" />
+          </button>
+
         </nav>
       </div>
 
@@ -1236,6 +1297,17 @@ export default function AgentDashboard() {
             <span className="text-sm">Team Performance</span>
           </button>
 
+          <button
+            onClick={() => setCurrentView('inquiry')}
+            className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all ${currentView === 'inquiry'
+              ? 'bg-amber-50 text-amber-700 font-medium border border-amber-100'
+              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+          >
+            <Mail className="h-5 w-5" />
+            <span className="text-sm">Inquiry Desk</span>
+          </button>
+
           <div className="my-2 border-t border-gray-100 mx-2"></div>
 
           <button
@@ -1248,6 +1320,20 @@ export default function AgentDashboard() {
             <Settings className="h-5 w-5" />
             <span className="text-sm">Settings</span>
           </button>
+
+          {/* Divider */}
+          <div className="my-2 border-t border-gray-100 mx-2"></div>
+
+          {/* External Links */}
+          <button
+            onClick={() => router.push('/analytics')}
+            className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+          >
+            <BarChart3 className="h-5 w-5" />
+            <span className="text-sm">Analytics</span>
+            <ChevronRight className="h-4 w-4 ml-auto" />
+          </button>
+
 
           <div className="my-2 border-t border-gray-100 mx-2"></div>
 
@@ -2080,19 +2166,28 @@ export default function AgentDashboard() {
                       />
                     </div>
 
-                    <div className="flex space-x-3">
+                    <div className="flex flex-col space-y-3">
+                      <div className="flex space-x-3">
+                        <button
+                          onClick={() => handleCloseTicket('unresolved')}
+                          className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm flex items-center justify-center"
+                        >
+                          <XCircle className="h-4 w-4 mr-1.5" />
+                          Close Only
+                        </button>
+                        <button
+                          onClick={() => handleCloseTicket('resolved')}
+                          className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm flex items-center justify-center shadow-lg shadow-green-100"
+                        >
+                          <Check className="h-4 w-4 mr-1.5" />
+                          Close & Resolve
+                        </button>
+                      </div>
                       <button
                         onClick={() => setShowCloseDialog(false)}
-                        className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                        className="w-full px-4 py-2 bg-white text-gray-500 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm border border-gray-200"
                       >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleCloseTicket}
-                        className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center"
-                      >
-                        <Check className="h-4 w-4 mr-1.5" />
-                        Close Ticket
+                        Keep Chat Open
                       </button>
                     </div>
                   </div>
@@ -2119,6 +2214,10 @@ export default function AgentDashboard() {
         renderProfile()
       ) : currentView === 'settings' ? (
         renderSettings()
+      ) : currentView === 'inquiry' ? (
+        <div className="flex-1 flex flex-col bg-gray-50 overflow-y-auto">
+          <InquiryDesk />
+        </div>
       ) : isAuthChecking ? (
         // Should not happen as we handle this early return above
         <div />

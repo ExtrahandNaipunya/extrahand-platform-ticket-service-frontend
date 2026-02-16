@@ -162,35 +162,7 @@ export default function Header() {
                     </Link>
 
                     {/* Desktop Navigation */}
-                    <nav className="hidden md:flex items-center space-x-1">
-                        <Link
-                            href="/dashboard"
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${pathname === '/dashboard'
-                                ? 'bg-amber-50 text-amber-700'
-                                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                                }`}
-                        >
-                            Dashboard
-                        </Link>
-                        <Link
-                            href="/knowledge-base"
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${pathname === '/knowledge-base'
-                                ? 'bg-amber-50 text-amber-700'
-                                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                                }`}
-                        >
-                            Knowledge Base
-                        </Link>
-                        <Link
-                            href="/analytics"
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${pathname === '/analytics'
-                                ? 'bg-amber-50 text-amber-700'
-                                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                                }`}
-                        >
-                            Analytics
-                        </Link>
-                    </nav>
+
 
                     {/* Right Side - User Menu */}
                     <div className="flex items-center space-x-3">
@@ -296,42 +268,7 @@ export default function Header() {
                 </div>
 
                 {/* Mobile Navigation */}
-                {showMobileMenu && (
-                    <div className="md:hidden border-t border-gray-200 py-3 animate-slideDown">
-                        <nav className="flex flex-col space-y-1">
-                            <Link
-                                href="/dashboard"
-                                onClick={() => setShowMobileMenu(false)}
-                                className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${pathname === '/dashboard'
-                                    ? 'bg-amber-50 text-amber-700'
-                                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                                    }`}
-                            >
-                                Dashboard
-                            </Link>
-                            <Link
-                                href="/knowledge-base"
-                                onClick={() => setShowMobileMenu(false)}
-                                className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${pathname === '/knowledge-base'
-                                    ? 'bg-amber-50 text-amber-700'
-                                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                                    }`}
-                            >
-                                Knowledge Base
-                            </Link>
-                            <Link
-                                href="/analytics"
-                                onClick={() => setShowMobileMenu(false)}
-                                className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${pathname === '/analytics'
-                                    ? 'bg-amber-50 text-amber-700'
-                                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                                    }`}
-                            >
-                                Analytics
-                            </Link>
-                        </nav>
-                    </div>
-                )}
+
             </div>
         </header>
     );
