@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { FileText, Search, Filter, Eye, Edit, User, Clock, Tag, AlertCircle, CheckCircle, XCircle, MoreVertical, Download, ExternalLink, Calendar, MessageSquare, ChevronDown, Trash2, ArrowUpDown, Loader2 } from 'lucide-react';
 import { formatToIST, formatTimeAgo } from '../../lib/dateUtils';
+import { getBackendApiUrl } from '@/lib/apiConfig';
 
 interface Ticket {
     id: string;
@@ -83,7 +83,7 @@ const AllTicketsView = ({ onNavigate, userEmail, userName }: AllTicketsViewProps
 
     const fetchAllTickets = async () => {
         try {
-            const response = await fetch('http://localhost:8001/api/supervisor/tickets/all');
+            const response = await fetch(`${getBackendApiUrl()}/api/supervisor/tickets/all`);
             if (response.ok) {
                 const data = await response.json();
                 // Add mock priority for production feel
@@ -104,7 +104,7 @@ const AllTicketsView = ({ onNavigate, userEmail, userName }: AllTicketsViewProps
         setIsLoadingLogs(true);
         setChatLogs([]);
         try {
-            const response = await fetch(`http://localhost:8001/api/ticket/history/${ticketId}`);
+            const response = await fetch(`${getBackendApiUrl()}/api/ticket/history/${ticketId}`);
             if (response.ok) {
                 const data = await response.json();
                 setChatLogs(data.messages || []);
@@ -132,7 +132,7 @@ const AllTicketsView = ({ onNavigate, userEmail, userName }: AllTicketsViewProps
         try {
             // If ticket is pending, assign it to the current user first
             if (ticket.status === 'pending') {
-                const assignResponse = await fetch(`http://localhost:8001/api/supervisor/tickets/${ticket.id}/assign`, {
+                const assignResponse = await fetch(`${getBackendApiUrl()}/api/supervisor/tickets/${ticket.id}/assign`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ agent_email: userEmail })

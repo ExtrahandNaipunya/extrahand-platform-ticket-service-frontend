@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { BarChart3, Users, Clock, TrendingUp, AlertCircle, CheckCircle, XCircle, Download, Filter, Calendar, MessageSquare, Activity, Globe, Headphones, ArrowUpRight, Search, Eye, Star, Zap } from 'lucide-react';
 import { formatToIST, formatTimeAgo, formatDateTimeToIST } from '../../lib/dateUtils';
+import { getBackendApiUrl } from '@/lib/apiConfig';
 
 interface TicketStats {
     total: number;
@@ -57,9 +57,9 @@ const SupervisorDashboardView = ({ onNavigate }: SupervisorDashboardViewProps) =
         try {
             // Fetch stats, team, and activity in parallel
             const [statsRes, teamRes, activityRes] = await Promise.all([
-                fetch('http://localhost:8001/api/supervisor/stats'),
-                fetch('http://localhost:8001/api/supervisor/team'),
-                fetch('http://localhost:8001/api/supervisor/activity')
+                fetch(`${getBackendApiUrl()}/api/supervisor/stats`),
+                fetch(`${getBackendApiUrl()}/api/supervisor/team`),
+                fetch(`${getBackendApiUrl()}/api/supervisor/activity`)
             ]);
 
             if (statsRes.ok) {

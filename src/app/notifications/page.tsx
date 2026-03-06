@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, CheckCircle, Clock, Search, Filter, Trash2, ArrowLeft, MoreHorizontal, Check, RefreshCw } from 'lucide-react';
 import Image from 'next/image';
+import { getBackendApiUrl } from '@/lib/apiConfig';
 
 
 interface Notification {
@@ -49,7 +50,7 @@ export default function NotificationsPage() {
 
         setIsLoading(true);
         try {
-            const response = await fetch(`http://localhost:8001/api/agent/notifications/${encodeURIComponent(user.email)}`);
+            const response = await fetch(`${getBackendApiUrl()}/api/agent/notifications/${encodeURIComponent(user.email)}`);
             if (response.ok) {
                 const data = await response.json();
                 setNotifications(data.notifications || []);
@@ -63,7 +64,7 @@ export default function NotificationsPage() {
 
     const markAsRead = async (id: string) => {
         try {
-            await fetch(`http://localhost:8001/api/agent/notifications/${id}/read`, {
+            await fetch(`${getBackendApiUrl()}/api/agent/notifications/${id}/read`, {
                 method: 'PUT'
             });
             setNotifications(prev => prev.map(n =>
@@ -79,7 +80,7 @@ export default function NotificationsPage() {
     const markAllAsRead = async () => {
         if (!user?.email) return;
         try {
-            await fetch(`http://localhost:8001/api/agent/notifications/mark-all-read`, {
+            await fetch(`${getBackendApiUrl()}/api/agent/notifications/mark-all-read`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: user.email })

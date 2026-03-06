@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Invite from '@/models/Invite';
+import { getBackendApiUrl } from '@/lib/apiConfig';
 
 export async function POST(request: Request) {
     try {
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
 
         // 2. Call Backend to Activate User
         try {
-            const backendResponse = await fetch('http://localhost:8001/api/auth/accept-invite', {
+            const backendResponse = await fetch(`${getBackendApiUrl()}/api/auth/accept-invite`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token, password }),

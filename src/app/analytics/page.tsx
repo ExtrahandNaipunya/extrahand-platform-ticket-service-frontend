@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { BarChart3, TrendingUp, Clock, CheckCircle, Star, MessageSquare, Users, Award, Calendar, Download, TrendingDown, ArrowLeft, Home, Search, Filter, Activity, Shield, Settings, FileText } from 'lucide-react';
 import { formatDateTimeToIST } from '../../lib/dateUtils';
+import { getBackendApiUrl } from '@/lib/apiConfig';
 
 interface Stats {
     total_conversations: number;
@@ -96,17 +97,17 @@ export default function AnalyticsPage() {
 
     const fetchAgentAnalytics = async (username: string) => {
         try {
-            const statsRes = await fetch(`http://localhost:8001/api/agent/stats/${username}`);
+            const statsRes = await fetch(`${getBackendApiUrl()}/api/agent/stats/${username}`);
             const statsData = await statsRes.json();
 
             if (stats) setPreviousStats(stats);
             setStats(statsData);
 
-            const weeklyRes = await fetch(`http://localhost:8001/api/agent/weekly-stats/${username}`);
+            const weeklyRes = await fetch(`${getBackendApiUrl()}/api/agent/weekly-stats/${username}`);
             const weeklyData = await weeklyRes.json();
             setWeeklyStats(weeklyData.weekly_stats || []);
 
-            const dailyRes = await fetch(`http://localhost:8001/api/agent/daily-activity/${username}`);
+            const dailyRes = await fetch(`${getBackendApiUrl()}/api/agent/daily-activity/${username}`);
             const dailyData = await dailyRes.json();
             setDailyActivity(dailyData);
 
@@ -119,7 +120,7 @@ export default function AnalyticsPage() {
 
     const fetchTeamAnalytics = async (role: string) => {
         try {
-            const endpoint = 'http://localhost:8001/api/supervisor/team';
+            const endpoint = `${getBackendApiUrl()}/api/supervisor/team`;
 
             const res = await fetch(endpoint);
             const data = await res.json();
@@ -141,16 +142,16 @@ export default function AnalyticsPage() {
             }
 
             // Fetch overview stats
-            const statsRes = await fetch('http://localhost:8001/api/supervisor/stats');
+            const statsRes = await fetch(`${getBackendApiUrl()}/api/supervisor/stats`);
             const statsData = await statsRes.json();
             setSystemStats(statsData);
 
             if (role === 'admin') {
-                const logsRes = await fetch('http://localhost:8001/api/admin/portal-logs?limit=10');
+                const logsRes = await fetch(`${getBackendApiUrl()}/api/admin/portal-logs?limit=10`);
                 const logsData = await logsRes.json();
                 setPortalLogs(logsData.logs || []);
 
-                const supRes = await fetch('http://localhost:8001/api/admin/supervisor-stats');
+                const supRes = await fetch(`${getBackendApiUrl()}/api/admin/supervisor-stats`);
                 const supData = await supRes.json();
                 setSupervisors(supData.supervisors || []);
             }

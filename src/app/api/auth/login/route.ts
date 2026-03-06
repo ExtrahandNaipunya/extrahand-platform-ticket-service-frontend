@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import connectDB from '@/lib/db';
 import User from '@/models/User';
+import { getBackendApiUrl } from '@/lib/apiConfig';
 
 // Simple in-memory user storage for development
 const users = [
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     // 1. Try Backend API (Source of Truth for Invited Users)
     try {
-      const backendResponse = await fetch('http://localhost:8001/api/auth/login', {
+      const backendResponse = await fetch(`${getBackendApiUrl()}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })

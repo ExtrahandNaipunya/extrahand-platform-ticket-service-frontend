@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Invite from '@/models/Invite';
 import crypto from 'crypto';
+import { getBackendApiUrl } from '@/lib/apiConfig';
 
 export async function GET(request: NextRequest) {
     try {
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
 
         // Call Backend API to Create User + Send Email
         try {
-            const backendUrl = 'http://localhost:8001/api/admin/invite';
+            const backendUrl = `${getBackendApiUrl()}/api/admin/invite`;
             const serviceAuthToken = process.env.SERVICE_AUTH_TOKEN || 'ExtraHand_Secure_Token_2024_MinLength32Chars_ChangeInProduction';
 
             console.log('[NextAPI] calling backend invite:', backendUrl);

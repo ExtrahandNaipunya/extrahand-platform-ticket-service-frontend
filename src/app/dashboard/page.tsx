@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Send, User, MessageSquare, Clock, CheckCircle, XCircle, LogOut, Settings, Edit2, Save, BarChart3, ChevronRight, Bell, Shield, Mail, Check, Zap, X as CloseIcon, History, Camera, Award, TrendingUp, Users, ArrowLeft, Search, Book, Menu, LayoutDashboard, List, UserPlus, FileCheck, Upload, ChevronDown, ChevronUp, Heart, Plus, RefreshCw, Trash2, Filter, MoreVertical, Building, FileText, Phone, Download, AlertCircle, Activity, Globe, Headphones } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { getBackendApiUrl, getBackendWsUrl } from '@/lib/apiConfig';
 import { formatToIST, formatTimeToIST, formatDateToIST, formatTimeAgo } from '../../lib/dateUtils';
 import LiveMonitoringView from './LiveMonitoringView';
 import TeamPerformanceView from './TeamPerformanceView';
@@ -428,7 +429,7 @@ export default function AgentDashboard() {
 
   // Fetch settings on mount
   useEffect(() => {
-    fetch('http://localhost:8001/api/admin/settings')
+    fetch(`${getBackendApiUrl()}/api/admin/settings`)
       .then(res => res.json())
       .then(data => {
         if (data && Object.keys(data).length > 0) {
@@ -516,7 +517,7 @@ export default function AgentDashboard() {
     setQuickReplies(defaultQuickReplies);
 
     // Fetch quick replies from API (will override defaults if available)
-    fetch('http://localhost:8001/api/agent/quick-replies')
+    fetch(`${getBackendApiUrl()}/api/agent/quick-replies`)
       .then(res => res.json())
       .then(data => {
         if (data.quick_replies && data.quick_replies.length > 0) {
@@ -542,7 +543,7 @@ export default function AgentDashboard() {
       isConnectingRef.current = true;
 
       // Connect to WebSocket using the logged-in agent's email
-      const wsUrl = `ws://localhost:8001/ws/agent/${encodeURIComponent(agentEmail)}`;
+      const wsUrl = `${getBackendWsUrl()}/ws/agent/${encodeURIComponent(agentEmail)}`;
       console.log('[Agent Dashboard] 🔌 Connecting to WebSocket:', wsUrl);
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
@@ -669,7 +670,7 @@ export default function AgentDashboard() {
   const fetchAdminStats = async () => {
     setIsLoadingAdminStats(true);
     try {
-      const response = await fetch('http://localhost:8001/api/admin/stats/overview');
+      const response = await fetch(`${getBackendApiUrl()}/api/admin/stats/overview`);
       if (response.ok) {
         const data = await response.json();
         // Temporary fix for accurate resolution time as requested
@@ -754,7 +755,7 @@ export default function AgentDashboard() {
     if (!selectedSessionId) return;
 
     try {
-      const response = await fetch(`http://localhost:8001/api/sessions/${selectedSessionId}/close`, {
+      const response = await fetch(`${getBackendApiUrl()}/api/sessions/${selectedSessionId}/close`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -802,7 +803,7 @@ export default function AgentDashboard() {
 
   const loadClosedTickets = async (username: string) => {
     try {
-      const response = await fetch(`http://localhost:8001/api/agent/history/${username}`);
+      const response = await fetch(`${getBackendApiUrl()}/api/agent/history/${username}`);
       const data = await response.json();
       setClosedTickets(data.sessions || []);
     } catch (error) {
@@ -813,7 +814,7 @@ export default function AgentDashboard() {
   const fetchAgentStatistics = async (username: string) => {
     try {
       setIsLoadingStats(true);
-      const response = await fetch(`http://localhost:8001/api/agent/stats/${username}`);
+      const response = await fetch(`${getBackendApiUrl()}/api/agent/stats/${username}`);
       if (response.ok) {
         const data = await response.json();
         setStats({
@@ -834,7 +835,7 @@ export default function AgentDashboard() {
 
   const loadTicketMessages = async (ticketId: string) => {
     try {
-      const response = await fetch(`http://localhost:8001/api/ticket/history/${ticketId}`);
+      const response = await fetch(`${getBackendApiUrl()}/api/ticket/history/${ticketId}`);
       const data = await response.json();
 
       if (data.messages) {

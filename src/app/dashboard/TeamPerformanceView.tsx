@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, Users, Clock, Award, Star, ArrowUpRight, ArrowDownRight, MessageSquare, Target, Zap, Activity, ShieldCheck, Search, Filter, Download } from 'lucide-react';
 import { formatDateTimeToIST } from '../../lib/dateUtils';
+import { getBackendApiUrl } from '@/lib/apiConfig';
 
 interface AgentStats {
     agent_email: string;
@@ -32,7 +32,7 @@ const TeamPerformanceView = () => {
         const fetchStats = async () => {
             setIsLoading(true);
             try {
-                const response = await fetch('http://localhost:8001/api/admin/stats/agents');
+                const response = await fetch(`${getBackendApiUrl()}/api/admin/stats/agents`);
                 if (response.ok) {
                     const data = await response.json();
                     if (data.agents && data.agents.length > 0) {

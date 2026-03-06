@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Send, X, User, Headphones } from 'lucide-react';
+import { getBackendApiUrl, getBackendWsUrl } from '@/lib/apiConfig';
 
 interface Message {
   id: string;
@@ -28,7 +29,7 @@ export default function LiveChat({ isOpen, onClose }: LiveChatProps) {
   useEffect(() => {
     if (isOpen && !socket && !sessionId) {
       // First create a session
-      fetch('http://localhost:8001/api/sessions', {
+      fetch(`${getBackendApiUrl()}/api/sessions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -44,7 +45,7 @@ export default function LiveChat({ isOpen, onClose }: LiveChatProps) {
           setSessionId(newSessionId);
           
           // Connect to WebSocket with session ID
-          const ws = new WebSocket(`ws://localhost:8001/ws/customer/${newSessionId}`);
+          const ws = new WebSocket(`${getBackendWsUrl()}/ws/customer/${newSessionId}`);
 
           ws.onopen = () => {
             console.log('Connected to Live Chat');

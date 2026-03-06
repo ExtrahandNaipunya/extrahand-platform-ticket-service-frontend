@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { getBackendApiUrl } from '@/lib/apiConfig';
 import {
     Mail,
     Clock,
@@ -83,7 +84,7 @@ export default function InquiryDesk() {
 
     const loadInquiries = async () => {
         try {
-            const response = await fetch('http://localhost:8001/api/inquiries');
+            const response = await fetch(`${getBackendApiUrl()}/api/inquiries`);
             const data = await response.json();
             if (data.success) {
                 setInquiries(data.inquiries);
@@ -97,7 +98,7 @@ export default function InquiryDesk() {
 
     const loadStats = async () => {
         try {
-            const response = await fetch('http://localhost:8001/api/inquiries/stats/summary');
+            const response = await fetch(`${getBackendApiUrl()}/api/inquiries/stats/summary`);
             const data = await response.json();
             if (data.success) {
                 setStats(data.stats);
@@ -125,7 +126,7 @@ export default function InquiryDesk() {
 
     const handleAssignToMe = async (inquiryId: string) => {
         try {
-            const response = await fetch(`http://localhost:8001/api/inquiries/${inquiryId}/assign`, {
+            const response = await fetch(`${getBackendApiUrl()}/api/inquiries/${inquiryId}/assign`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ agent_email: userEmail })
@@ -145,7 +146,7 @@ export default function InquiryDesk() {
 
     const handleUpdateStatus = async (inquiryId: string, status: string) => {
         try {
-            const response = await fetch(`http://localhost:8001/api/inquiries/${inquiryId}/status`, {
+            const response = await fetch(`${getBackendApiUrl()}/api/inquiries/${inquiryId}/status`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -171,7 +172,7 @@ export default function InquiryDesk() {
     const handleAddNotes = async (inquiryId: string) => {
         if (!agentNotes.trim()) return;
         try {
-            const response = await fetch(`http://localhost:8001/api/inquiries/${inquiryId}/notes`, {
+            const response = await fetch(`${getBackendApiUrl()}/api/inquiries/${inquiryId}/notes`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ notes: agentNotes })

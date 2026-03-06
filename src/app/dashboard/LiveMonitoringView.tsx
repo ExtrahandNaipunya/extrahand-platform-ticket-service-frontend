@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { Activity, Clock, User, MessageSquare, AlertCircle, RefreshCw } from 'lucide-react';
 import { formatTimeAgo } from '../../lib/dateUtils';
+import { getBackendApiUrl } from '@/lib/apiConfig';
 
 interface ActiveSession {
     id: number;
@@ -21,7 +21,7 @@ const LiveMonitoringView = () => {
     const fetchActiveSessions = async () => {
         setIsLoading(true);
         try {
-            const response = await fetch('http://localhost:8001/api/admin/monitoring/active-sessions');
+            const response = await fetch(`${getBackendApiUrl()}/api/admin/monitoring/active-sessions`);
             if (response.ok) {
                 const data = await response.json();
                 setSessions(data.sessions || []);

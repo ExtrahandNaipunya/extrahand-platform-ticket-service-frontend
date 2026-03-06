@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { Search, MoreVertical, Trash2, Edit2, Eye, CheckCircle, AlertCircle, Plus, ChevronDown, Key, Ban, RefreshCw, UserPlus, Users, UserCheck, UserX, TrendingUp } from 'lucide-react';
 import { formatDateToIST, formatDateTimeToIST } from '../../lib/dateUtils';
+import { getBackendApiUrl } from '@/lib/apiConfig';
 
 interface User {
     _id: string;
@@ -46,7 +46,7 @@ const UserManagementView = ({ onNavigate }: UserManagementViewProps) => {
 
         setIsInviting(true);
         try {
-            const response = await fetch('http://localhost:8001/api/admin/invite', {
+            const response = await fetch(`${getBackendApiUrl()}/api/admin/invite`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -108,7 +108,7 @@ const UserManagementView = ({ onNavigate }: UserManagementViewProps) => {
     const fetchUsers = async () => {
         setIsLoading(true);
         try {
-            const response = await fetch('http://localhost:8001/api/admin/users');
+            const response = await fetch(`${getBackendApiUrl()}/api/admin/users`);
             if (response.ok) {
                 const data = await response.json();
                 setUsers(data.users || []);
@@ -126,7 +126,7 @@ const UserManagementView = ({ onNavigate }: UserManagementViewProps) => {
             case 'activate':
                 if (!confirm(`Are you sure you want to ${action} this user?`)) return;
                 try {
-                    const response = await fetch(`http://localhost:8001/api/admin/users/${user._id}/${action === 'suspend' ? 'suspend' : 'activate'}`, {
+                    const response = await fetch(`${getBackendApiUrl()}/api/admin/users/${user._id}/${action === 'suspend' ? 'suspend' : 'activate'}`, {
                         method: 'PUT',
                     });
                     if (response.ok) {
@@ -142,7 +142,7 @@ const UserManagementView = ({ onNavigate }: UserManagementViewProps) => {
             case 'delete':
                 if (!confirm(`Are you sure you want to DELETE ${user.name}? This cannot be undone.`)) return;
                 try {
-                    const response = await fetch(`http://localhost:8001/api/admin/users/${user._id}`, {
+                    const response = await fetch(`${getBackendApiUrl()}/api/admin/users/${user._id}`, {
                         method: 'DELETE',
                     });
                     if (response.ok) {
@@ -175,7 +175,7 @@ const UserManagementView = ({ onNavigate }: UserManagementViewProps) => {
         }
 
         try {
-            const response = await fetch(`http://localhost:8001/api/admin/users/${selectedUser._id}/password`, {
+            const response = await fetch(`${getBackendApiUrl()}/api/admin/users/${selectedUser._id}/password`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ newPassword }),

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Invite from '@/models/Invite';
+import { getBackendApiUrl } from '@/lib/apiConfig';
 
 export async function DELETE(
     request: Request,
@@ -26,7 +27,7 @@ export async function DELETE(
             if (deletedInvite && deletedInvite.email) {
                 // Fetch all users from backend to find the correct ID
                 // Ideally backend should have a delete-by-email or get-by-email endpoint
-                const usersResponse = await fetch('http://localhost:8001/api/admin/users');
+                const usersResponse = await fetch(`${getBackendApiUrl()}/api/admin/users`);
                 if (usersResponse.ok) {
                     const data = await usersResponse.json();
                     const backendUser = data.users.find((u: any) => u.email === deletedInvite.email);
@@ -37,7 +38,7 @@ export async function DELETE(
                 }
             }
 
-            const response = await fetch(`http://localhost:8001/api/admin/users/${backendIdToDelete}`, {
+            const response = await fetch(`${getBackendApiUrl()}/api/admin/users/${backendIdToDelete}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
