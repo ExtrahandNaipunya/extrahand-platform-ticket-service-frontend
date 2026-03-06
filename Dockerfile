@@ -11,9 +11,10 @@ RUN npm ci
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-# Cache bust: set CACHEBUST in CapRover build args (e.g. {{ $now }} or build number) to force fresh build
-ARG CACHEBUST=1
-RUN echo "Build cache bust: ${CACHEBUST}"
+# Cache bust: CapRover sets CAPROVER_GIT_COMMIT_SHA on deploy; or set CACHEBUST env in app config to force fresh build
+ARG CACHEBUST=
+ARG CAPROVER_GIT_COMMIT_SHA=
+RUN echo "Build cache bust: CACHEBUST=${CACHEBUST} GIT_SHA=${CAPROVER_GIT_COMMIT_SHA}"
 COPY . .
 # Build-time env for NEXT_PUBLIC_* (optional; runtime uses API_URL / NEXT_PUBLIC_API_URL from server)
 ARG NEXT_PUBLIC_BACKEND_URL

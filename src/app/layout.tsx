@@ -25,7 +25,7 @@ export default function RootLayout({
     process.env.BACKEND_URL ||
     process.env.NEXT_PUBLIC_API_URL ||
     process.env.NEXT_PUBLIC_BACKEND_URL ||
-    "http://localhost:8001";
+    "https://extrahand-ticket-service-backend.apps.extrahand.in";
   const script = `window.__BACKEND_URL__=${JSON.stringify(backendUrl)};`;
   return (
     <html lang="en">

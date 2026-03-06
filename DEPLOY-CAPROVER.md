@@ -13,4 +13,9 @@
 
 4. **Deploy** via CapRover CLI or GitHub. CapRover uses `captain-definition` and `Dockerfile` (multi-stage Next.js build with standalone output).
 
-5. **Enable HTTPS** and set the backend’s `FRONTEND_URL` / `CORS_ORIGIN` to this app’s URL so the backend allows requests from the frontend.
+5. **If Docker keeps using cache and changes don’t apply:**  
+   - In CapRover, trigger a new deployment and pass a **build argument** so the builder stage runs again: e.g. **Build Arguments** (if shown in the deploy UI) add `CACHEBUST` = `1` (then `2`, `3`, or a timestamp each time you want a fresh build).  
+   - Or from CLI when building: `docker build --build-arg CACHEBUST=$(date +%s) ...`  
+   - Some setups have a **“Clear build cache”** or **“Rebuild from scratch”** option—use that once, then redeploy.
+
+6. **Enable HTTPS** and set the backend’s `FRONTEND_URL` / `CORS_ORIGIN` to this app’s URL so the backend allows requests from the frontend.

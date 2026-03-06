@@ -4,7 +4,7 @@ declare global {
   }
 }
 
-const FALLBACK = 'http://localhost:8001';
+const FALLBACK = 'https://extrahand-ticket-service-backend.apps.extrahand.in';
 
 /**
  * Backend API base URL (ticket service). Use for fetch() and server-side calls.
