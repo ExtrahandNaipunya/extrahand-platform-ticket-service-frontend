@@ -2,7 +2,7 @@
 
 1. **Runtime env (recommended):**  
    In CapRover **App Configs → Environment Variables** for the frontend app, set:
-   - `BACKEND_URL` – backend API base URL (e.g. `https://ticket-backend.yourdomain.com`)  
+   - `NEXT_PUBLIC_API_URL` or `API_URL` – backend API base URL (e.g. `https://extrahand-ticket-service-backend.apps.extrahand.in`)  
    This is injected into the page on each request, so **no rebuild is needed** when you change it.
 
 2. **Optional:**  

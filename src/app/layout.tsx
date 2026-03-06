@@ -18,11 +18,13 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Inject runtime backend URL so client uses server env (CapRover), not build-time NEXT_PUBLIC_*
+  // Inject runtime backend URL so client uses server env (CapRover).
+  // Prefer API_URL / NEXT_PUBLIC_API_URL (your CapRover config), then BACKEND_URL / NEXT_PUBLIC_BACKEND_URL.
   const backendUrl =
+    process.env.API_URL ||
     process.env.BACKEND_URL ||
-    process.env.NEXT_PUBLIC_BACKEND_URL ||
     process.env.NEXT_PUBLIC_API_URL ||
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
     "http://localhost:8001";
   const script = `window.__BACKEND_URL__=${JSON.stringify(backendUrl)};`;
   return (
