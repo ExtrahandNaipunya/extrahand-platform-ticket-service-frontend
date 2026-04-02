@@ -1,24 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { Search, Book, FileText, HelpCircle, ExternalLink, ChevronRight, Bookmark, Clock, Star, ArrowLeft, Loader2 } from 'lucide-react';
 import { getBackendApiUrl } from '@/lib/apiConfig';
 
 export default function KnowledgeBasePage() {
-  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [articles, setArticles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      router.push('/login');
-      return;
-    }
-
     const fetchArticles = async () => {
       try {
         const response = await fetch(`${getBackendApiUrl()}/api/articles`);
@@ -37,7 +29,7 @@ export default function KnowledgeBasePage() {
     };
 
     fetchArticles();
-  }, [router]);
+  }, []);
 
   // ... (categories definitions skipped for brevity, they are unchanged) ...
   const categoriesSet = [
