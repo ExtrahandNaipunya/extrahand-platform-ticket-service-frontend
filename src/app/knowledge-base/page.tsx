@@ -82,11 +82,11 @@ export default function KnowledgeBasePage() {
         {/* Header with Navigation */}
         <div className="mb-4">
           <button
-            onClick={() => router.push('/dashboard')}
+            onClick={() => window.location.assign('/')}
             className="flex items-center text-amber-600 hover:text-amber-700 mb-2 font-medium transition-colors text-sm"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
-            <span>Back to Dashboard</span>
+            <span>Back to Home</span>
           </button>
 
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center space-x-3">
