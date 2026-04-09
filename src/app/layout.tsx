@@ -32,7 +32,7 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: script }} />
       </head>
-      <body className={`${inter.className} overflow-x-hidden`} suppressHydrationWarning={true}>
+      <body className={`${inter.className} extrahand-theme overflow-x-hidden`} suppressHydrationWarning={true}>
         <Header />
         <main>{children}</main>
       </body>
