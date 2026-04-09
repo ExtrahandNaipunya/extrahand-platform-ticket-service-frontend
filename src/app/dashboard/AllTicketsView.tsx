@@ -44,46 +44,30 @@ const AllTicketsView = ({ onNavigate, userEmail, userName }: AllTicketsViewProps
     const [isLoadingLogs, setIsLoadingLogs] = useState(false);
     const [isJoiningChat, setIsJoiningChat] = useState(false);
     const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalTickets, setTotalTickets] = useState(0);
+    const PAGE_SIZE = 20;
 
     useEffect(() => {
         fetchAllTickets();
-        const interval = setInterval(fetchAllTickets, 15000); // 15s refresh
-        return () => clearInterval(interval);
-    }, []);
+    }, [currentPage, statusFilter, searchQuery, sortBy]);
 
     useEffect(() => {
-        let filtered = [...tickets];
-
-        // Status filter
-        if (statusFilter !== 'all') {
-            filtered = filtered.filter(t => t.status === statusFilter);
-        }
-
-        // Search filter
-        if (searchQuery) {
-            const query = searchQuery.toLowerCase();
-            filtered = filtered.filter(t =>
-                t.ticket_id?.toLowerCase().includes(query) ||
-                t.customer_name?.toLowerCase().includes(query) ||
-                t.customer_email?.toLowerCase().includes(query) ||
-                t.issue_category_label?.toLowerCase().includes(query) ||
-                (t.agent_email && t.agent_email.toLowerCase().includes(query))
-            );
-        }
-
-        // Sorting
-        filtered.sort((a, b) => {
-            const dateA = new Date(a.created_at).getTime();
-            const dateB = new Date(b.created_at).getTime();
-            return sortBy === 'newest' ? dateB - dateA : dateA - dateB;
-        });
-
-        setFilteredTickets(filtered);
-    }, [tickets, statusFilter, searchQuery, sortBy]);
+        setCurrentPage(1);
+    }, [statusFilter, sortBy]);
 
     const fetchAllTickets = async () => {
         try {
-            const response = await fetch(`${getBackendApiUrl()}/api/supervisor/tickets/all`);
+            setIsLoading(true);
+            const params = new URLSearchParams({
+                page: String(currentPage),
+                limit: String(PAGE_SIZE),
+                status: statusFilter,
+                sortBy,
+                search: searchQuery
+            });
+            const response = await fetch(`${getBackendApiUrl()}/api/supervisor/tickets/all?${params.toString()}`);
             if (response.ok) {
                 const data = await response.json();
                 // Add mock priority for production feel
@@ -92,6 +76,9 @@ const AllTicketsView = ({ onNavigate, userEmail, userName }: AllTicketsViewProps
                     priority: t.status === 'pending' ? 'high' : t.status === 'active' ? 'medium' : 'low'
                 }));
                 setTickets(enhancedTickets);
+                setFilteredTickets(enhancedTickets);
+                setTotalTickets(data.pagination?.total || enhancedTickets.length);
+                setTotalPages(data.pagination?.totalPages || 1);
             }
         } catch (error) {
             console.error('Failed to fetch tickets:', error);
@@ -242,7 +229,10 @@ const AllTicketsView = ({ onNavigate, userEmail, userName }: AllTicketsViewProps
                                 type="text"
                                 placeholder="Search by Ticket ID, Customer Name, Email, or Agent..."
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value);
+                                    setCurrentPage(1);
+                                }}
                                 className="w-full pl-12 pr-4 py-3 bg-gray-50 border-transparent focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 rounded-xl outline-none transition-all font-medium text-sm border hover:border-gray-200"
                             />
                         </div>
@@ -367,12 +357,46 @@ const AllTicketsView = ({ onNavigate, userEmail, userName }: AllTicketsViewProps
                         </div>
                     )}
                 </div>
+
+                {/* Pagination */}
+                {!isLoading && totalPages > 1 && (
+                    <div className="mt-6 flex items-center justify-between bg-white border border-gray-100 rounded-xl p-4">
+                        <p className="text-sm text-gray-600 font-medium">
+                            Showing page <span className="font-bold text-gray-900">{currentPage}</span> of{' '}
+                            <span className="font-bold text-gray-900">{totalPages}</span>{' '}
+                            ({totalTickets} tickets)
+                        </p>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="px-3 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Previous
+                            </button>
+                            <button
+                                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                                className="px-3 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Ticket Detail Modal */}
             {selectedTicket && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 scale-in-center">
-                    <div className="bg-white rounded-[2.5rem] w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+                <div
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 scale-in-center"
+                    onClick={() => setSelectedTicket(null)}
+                    role="presentation"
+                >
+                    <div
+                        className="bg-white rounded-[2.5rem] w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 sticky top-0">
                             <div className="flex items-center space-x-6">
                                 <div className={`px-6 py-2 rounded-full text-xs font-black uppercase tracking-[0.2em] border-2 ${getStatusStyles(selectedTicket.status)}`}>
@@ -477,8 +501,15 @@ const AllTicketsView = ({ onNavigate, userEmail, userName }: AllTicketsViewProps
 
             {/* Chat Logs Modal */}
             {showLogsModal && selectedTicket && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[150] p-4">
-                    <div className="bg-white rounded-[2rem] w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col shadow-2xl">
+                <div
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[150] p-4"
+                    onClick={() => setShowLogsModal(false)}
+                    role="presentation"
+                >
+                    <div
+                        className="bg-white rounded-[2rem] w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                             <div>
                                 <h3 className="text-lg font-black text-gray-900">Chat Logs</h3>

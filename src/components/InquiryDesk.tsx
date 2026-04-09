@@ -25,6 +25,7 @@ interface Inquiry {
     message: string;
     status: 'pending' | 'in_progress' | 'resolved' | 'closed';
     assigned_agent: string | null;
+    assigned_agent_id?: string | null;
     agent_notes: string | null;
     resolution_note: string | null;
     priority: 'low' | 'medium' | 'high' | 'urgent';
@@ -59,13 +60,29 @@ export default function InquiryDesk() {
     const [agentNotes, setAgentNotes] = useState('');
     const [resolutionNote, setResolutionNote] = useState('');
     const [userEmail, setUserEmail] = useState('');
+    const [userId, setUserId] = useState('');
+    const [userRole, setUserRole] = useState('user');
+
+    const getUserContext = () => {
+        try {
+            const userStr = localStorage.getItem('user');
+            if (!userStr) return { id: '', email: '', role: 'user' };
+            const user = JSON.parse(userStr);
+            return {
+                id: String(user.id || user._id || '').trim(),
+                email: String(user.email || '').toLowerCase(),
+                role: String(user.role || 'user').toLowerCase()
+            };
+        } catch {
+            return { id: '', email: '', role: 'user' };
+        }
+    };
 
     useEffect(() => {
-        const userStr = localStorage.getItem('user');
-        if (userStr) {
-            const user = JSON.parse(userStr);
-            setUserEmail(user.email);
-        }
+        const context = getUserContext();
+        setUserId(context.id);
+        setUserEmail(context.email);
+        setUserRole(context.role);
 
         loadInquiries();
         loadStats();
@@ -80,11 +97,19 @@ export default function InquiryDesk() {
 
     useEffect(() => {
         applyFilters();
-    }, [inquiries, filterStatus, filterPriority, searchQuery]);
+    }, [inquiries, filterStatus, filterPriority, searchQuery, userRole, userId, userEmail, selectedInquiry]);
 
     const loadInquiries = async () => {
         try {
-            const response = await fetch(`${getBackendApiUrl()}/api/inquiries`);
+            const context = getUserContext();
+            const scope = context.role === 'admin' || context.role === 'supervisor' ? 'all' : 'mine';
+            const response = await fetch(`${getBackendApiUrl()}/api/inquiries?scope=${scope}`, {
+                headers: {
+                    'x-user-id': context.id,
+                    'x-user-email': context.email,
+                    'x-user-role': context.role
+                }
+            });
             const data = await response.json();
             if (data.success) {
                 setInquiries(data.inquiries);
@@ -98,7 +123,15 @@ export default function InquiryDesk() {
 
     const loadStats = async () => {
         try {
-            const response = await fetch(`${getBackendApiUrl()}/api/inquiries/stats/summary`);
+            const context = getUserContext();
+            const scope = context.role === 'admin' || context.role === 'supervisor' ? 'all' : 'mine';
+            const response = await fetch(`${getBackendApiUrl()}/api/inquiries/stats/summary?scope=${scope}`, {
+                headers: {
+                    'x-user-id': context.id,
+                    'x-user-email': context.email,
+                    'x-user-role': context.role
+                }
+            });
             const data = await response.json();
             if (data.success) {
                 setStats(data.stats);
@@ -110,6 +143,18 @@ export default function InquiryDesk() {
 
     const applyFilters = () => {
         let filtered = [...inquiries];
+        const isPrivileged = userRole === 'admin' || userRole === 'supervisor';
+        const isOwnedByCurrentUser = (inquiry: Inquiry) => {
+            const assignedId = String(inquiry.assigned_agent_id || '').trim();
+            const assignedEmail = String(inquiry.assigned_agent || '').toLowerCase();
+            return (userId && assignedId === userId) || (!!userEmail && assignedEmail === userEmail.toLowerCase());
+        };
+
+        // Strict non-privileged visibility: only own inquiries.
+        if (!isPrivileged) {
+            filtered = filtered.filter(isOwnedByCurrentUser);
+        }
+
         if (filterStatus !== 'all') filtered = filtered.filter(i => i.status === filterStatus);
         if (filterPriority !== 'all') filtered = filtered.filter(i => i.priority === filterPriority);
         if (searchQuery) {
@@ -122,14 +167,23 @@ export default function InquiryDesk() {
             );
         }
         setFilteredInquiries(filtered);
+
+        // Auto-clear selection if current record no longer belongs to this user in strict mode.
+        if (!isPrivileged && selectedInquiry && !isOwnedByCurrentUser(selectedInquiry)) {
+            setSelectedInquiry(null);
+        }
     };
 
     const handleAssignToMe = async (inquiryId: string) => {
         try {
+            const context = getUserContext();
             const response = await fetch(`${getBackendApiUrl()}/api/inquiries/${inquiryId}/assign`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ agent_email: userEmail })
+                body: JSON.stringify({
+                    agent_id: context.id || undefined,
+                    agent_email: context.email
+                })
             });
 
             const data = await response.json();
@@ -253,13 +307,18 @@ export default function InquiryDesk() {
                         </div>
                         <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg border border-blue-100 min-w-max">
                             <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                            <span className="text-xs text-blue-700 font-medium">Active:</span>
+                            <span className="text-xs text-blue-700 font-medium">In Progress:</span>
                             <span className="text-xs font-bold text-blue-900">{stats.in_progress}</span>
                         </div>
                         <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-lg border border-emerald-100 min-w-max">
                             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                             <span className="text-xs text-emerald-700 font-medium">Resolved:</span>
                             <span className="text-xs font-bold text-emerald-900">{stats.resolved}</span>
+                        </div>
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-200 min-w-max">
+                            <span className="w-2 h-2 rounded-full bg-slate-500"></span>
+                            <span className="text-xs text-slate-700 font-medium">Closed:</span>
+                            <span className="text-xs font-bold text-slate-900">{stats.closed}</span>
                         </div>
                         <button onClick={() => { loadInquiries(); loadStats(); }} className="p-1.5 hover:bg-gray-100 rounded-full transition-colors ml-2">
                             <RefreshCw className="h-4 w-4 text-gray-400" />
@@ -443,7 +502,11 @@ export default function InquiryDesk() {
                                             Assign to Me
                                         </button>
                                     </div>
-                                ) : selectedInquiry.assigned_agent === userEmail ? (
+                                ) : (
+                                    ((userRole === 'admin' || userRole === 'supervisor') ||
+                                        (userId && String(selectedInquiry.assigned_agent_id || '').trim() === userId) ||
+                                        String(selectedInquiry.assigned_agent || '').toLowerCase() === userEmail.toLowerCase()
+                                    ) ? (
                                     <div className="space-y-3">
                                         <div className="flex gap-2">
                                             <textarea
@@ -481,12 +544,13 @@ export default function InquiryDesk() {
                                             </div>
                                         )}
                                     </div>
-                                ) : (
+                                    ) : (
                                     <div className="w-full py-2 px-4 bg-amber-50 border border-amber-100 rounded-lg text-center">
                                         <p className="text-xs text-amber-800 font-medium">
-                                            Locked: Assigned to <span className="font-bold">{selectedInquiry.assigned_agent}</span>
+                                            Locked: Assigned to <span className="font-bold">another agent</span>
                                         </p>
                                     </div>
+                                    )
                                 )}
                             </div>
                         </div>

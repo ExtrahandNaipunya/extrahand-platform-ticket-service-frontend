@@ -65,13 +65,31 @@ export async function POST(request: NextRequest) {
       if (backendResponse.ok) {
         const data = await backendResponse.json();
         user = {
+          id: data.user.id,
           email: data.user.email,
           name: data.user.name,
           role: data.user.role || 'agent'
         };
         console.log('Login success via Backend API for:', email);
       } else {
-        console.log('Backend login failed:', await backendResponse.text());
+        let errorBody: { error?: string } = {};
+        try {
+          errorBody = await backendResponse.json();
+        } catch {
+          /* non-JSON body */
+        }
+
+        // Do not fall through to legacy logins when account exists but is blocked (suspended / inactive)
+        if (backendResponse.status === 403) {
+          const raw = errorBody.error || 'Account is not active';
+          const message =
+            /not active|suspend|inactive/i.test(raw) || raw === 'Account is not active'
+              ? 'Your account has been suspended or deactivated. Contact your administrator if you need access.'
+              : raw;
+          return NextResponse.json({ error: message }, { status: 403 });
+        }
+
+        console.log('Backend login failed:', errorBody.error || backendResponse.status);
       }
     } catch (apiErr) {
       console.warn('Backend API login check failed (might be down):', apiErr);
@@ -86,7 +104,23 @@ export async function POST(request: NextRequest) {
         if (dbUser) {
           const isMatch = await bcrypt.compare(password, dbUser.passwordHash);
           if (isMatch) {
+            if (dbUser.status === 'SUSPENDED' || dbUser.status === 'REJECTED') {
+              return NextResponse.json(
+                {
+                  error:
+                    'Your account has been suspended or deactivated. Contact your administrator if you need access.'
+                },
+                { status: 403 }
+              );
+            }
+            if (dbUser.status === 'PENDING') {
+              return NextResponse.json(
+                { error: 'Your account is not active yet. Complete verification or wait for approval.' },
+                { status: 403 }
+              );
+            }
             user = {
+              id: dbUser._id?.toString?.(),
               email: dbUser.email,
               name: dbUser.name,
               role: dbUser.role || 'agent'
@@ -103,6 +137,7 @@ export async function POST(request: NextRequest) {
       const hardcodedUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
       if (hardcodedUser && hardcodedUser.password === password) {
         user = {
+          id: hardcodedUser.email,
           email: hardcodedUser.email,
           name: hardcodedUser.name,
           role: hardcodedUser.role
@@ -130,6 +165,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Login successful',
       user: {
+        id: (user as any).id,
         email: user.email,
         name: user.name,
         role: user.role

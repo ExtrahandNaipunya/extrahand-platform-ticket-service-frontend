@@ -29,6 +29,8 @@ const UserManagementView = ({ onNavigate }: UserManagementViewProps) => {
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [newPassword, setNewPassword] = useState('');
+    const [selectedRole, setSelectedRole] = useState<User['role']>('user');
+    const [isRoleUpdating, setIsRoleUpdating] = useState(false);
 
     // Invite Modal State
     const [showInviteModal, setShowInviteModal] = useState(false);
@@ -161,6 +163,7 @@ const UserManagementView = ({ onNavigate }: UserManagementViewProps) => {
                 break;
             case 'view':
                 setSelectedUser(user);
+                setSelectedRole(user.role);
                 setShowDetailModal(true);
                 break;
         }
@@ -192,6 +195,30 @@ const UserManagementView = ({ onNavigate }: UserManagementViewProps) => {
         } catch (error) {
             console.error('Failed to change password:', error);
             alert('Error updating password');
+        }
+    };
+
+    const handleRoleChange = async () => {
+        if (!selectedUser || selectedRole === selectedUser.role) return;
+        setIsRoleUpdating(true);
+        try {
+            const response = await fetch(`${getBackendApiUrl()}/api/admin/users/${selectedUser._id}/role`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role: selectedRole }),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to update role');
+            }
+            alert(data.message || 'Role updated successfully');
+            setSelectedUser((prev) => (prev ? { ...prev, role: selectedRole } : prev));
+            setUsers((prev) => prev.map((u) => (u._id === selectedUser._id ? { ...u, role: selectedRole } : u)));
+        } catch (error: any) {
+            console.error('Failed to update role:', error);
+            alert(error.message || 'Error updating role');
+        } finally {
+            setIsRoleUpdating(false);
         }
     };
 
@@ -456,8 +483,15 @@ const UserManagementView = ({ onNavigate }: UserManagementViewProps) => {
             </div>
             {/* Invite Modal (New) */}
             {showInviteModal && (
-                <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl transform transition-all">
+                <div
+                    className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4 backdrop-blur-sm"
+                    onClick={() => setShowInviteModal(false)}
+                    role="presentation"
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-xl w-full max-w-2xl transform transition-all"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <div className="p-6">
                             <div className="flex justify-between items-start mb-6">
                                 <div>
@@ -545,8 +579,15 @@ const UserManagementView = ({ onNavigate }: UserManagementViewProps) => {
 
             {/* Change Password Modal */}
             {showPasswordModal && selectedUser && (
-                <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm transform transition-all scale-100">
+                <div
+                    className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4 backdrop-blur-sm"
+                    onClick={() => setShowPasswordModal(false)}
+                    role="presentation"
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm transform transition-all scale-100"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-bold text-gray-900">Change Password</h3>
                             <button onClick={() => setShowPasswordModal(false)} className="text-gray-400 hover:text-gray-600">
@@ -587,8 +628,15 @@ const UserManagementView = ({ onNavigate }: UserManagementViewProps) => {
 
             {/* User Details Modal (Read Only / Quick View) */}
             {showDetailModal && selectedUser && (
-                <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg transform transition-all overflow-hidden">
+                <div
+                    className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4 backdrop-blur-sm"
+                    onClick={() => setShowDetailModal(false)}
+                    role="presentation"
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg transform transition-all overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
                             <h3 className="font-bold text-gray-900 flex items-center">
                                 <UserCheck className="h-5 w-5 mr-2 text-gray-500" />
@@ -625,6 +673,30 @@ const UserManagementView = ({ onNavigate }: UserManagementViewProps) => {
                                 <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
                                     <span className="text-xs text-gray-500 block mb-1">Created At</span>
                                     <span className="font-medium text-gray-900">{formatDateToIST(selectedUser.createdAt)}</span>
+                                </div>
+                            </div>
+
+                            <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div>
+                                        <span className="text-xs text-gray-500 block mb-1">Role</span>
+                                        <select
+                                            value={selectedRole}
+                                            onChange={(e) => setSelectedRole(e.target.value as User['role'])}
+                                            className="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white"
+                                        >
+                                            <option value="user">Agent</option>
+                                            <option value="supervisor">Supervisor</option>
+                                            <option value="admin">Admin</option>
+                                        </select>
+                                    </div>
+                                    <button
+                                        onClick={handleRoleChange}
+                                        disabled={isRoleUpdating || selectedRole === selectedUser.role}
+                                        className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isRoleUpdating ? 'Updating...' : 'Update Role'}
+                                    </button>
                                 </div>
                             </div>
 

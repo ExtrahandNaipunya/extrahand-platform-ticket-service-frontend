@@ -34,6 +34,15 @@ export default function SupervisorLayout({
         }
     }, [router]);
 
+    useEffect(() => {
+        // Prevent double vertical scrollbars on supervisor dashboard shell.
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = previousOverflow;
+        };
+    }, []);
+
     if (!isAuthorized) {
         return null; // Don't render anything while checking
     }

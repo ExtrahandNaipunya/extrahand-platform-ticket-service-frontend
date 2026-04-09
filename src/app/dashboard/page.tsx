@@ -343,6 +343,9 @@ export default function AgentDashboard() {
   const [isConnected, setIsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const isConnectingRef = useRef(false);
+  const reconnectTimerRef = useRef<number | null>(null);
+  const reconnectAttemptRef = useRef(0);
+  const manualCloseRef = useRef(false);
 
   const [pendingChats, setPendingChats] = useState<ChatSession[]>([]);
   const [activeChats, setActiveChats] = useState<ChatSession[]>([]);
@@ -419,7 +422,8 @@ export default function AgentDashboard() {
   const [settings, setSettings] = useState({
     enableSoundAlerts: true,
     enableEmailNotifications: true,
-    autoAssignChats: true
+    autoAssignChats: true,
+    privacyMode: false
   });
 
   const settingsRef = useRef(settings);
@@ -486,11 +490,35 @@ export default function AgentDashboard() {
     setAgentEmail(user.email);
     const role = user.role || 'user';
     setUserRole(role);
+    const requestedView = searchParams.get('view');
+    const allowedAgentViews = new Set<View>(['profile', 'settings', 'history', 'inquiry', 'chat']);
+    const allowedAdminViews = new Set<View>([
+      'chat',
+      'admin_dashboard',
+      'admin_monitoring',
+      'admin_performance',
+      'admin_settings',
+      'admin_invite',
+      'admin_users',
+      'inquiry',
+      'profile',
+      'settings',
+      'history'
+    ]);
+
     if (role === 'admin') {
-      setCurrentView('admin_dashboard');
+      if (requestedView && allowedAdminViews.has(requestedView as View)) {
+        setCurrentView(requestedView as View);
+      } else {
+        setCurrentView('admin_dashboard');
+      }
     } else {
-      // Default agent view
-      setCurrentView('chat');
+      // Default agent view (honor query when provided)
+      if (requestedView && allowedAgentViews.has(requestedView as View)) {
+        setCurrentView(requestedView as View);
+      } else {
+        setCurrentView('chat');
+      }
     }
     setNewName(user.name || user.email);
     setIsAuthChecking(false);
@@ -525,13 +553,30 @@ export default function AgentDashboard() {
         }
       })
       .catch(err => console.error('Failed to load quick replies, using defaults:', err));
-  }, [router]);
+  }, [router, searchParams]);
+
+  useEffect(() => {
+    // Prevent double vertical scrollbars (document + in-app panel) on dashboard screens.
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
 
   useEffect(() => {
     if (!agentEmail) return;
 
     console.log('[Agent Dashboard] Connecting to WebSocket...');
     console.log('[Agent Dashboard] User email:', agentEmail);
+    manualCloseRef.current = false;
+
+    const clearReconnectTimer = () => {
+      if (reconnectTimerRef.current !== null) {
+        window.clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+    };
 
     const connectWebSocket = () => {
       // Prevent duplicate WebSocket connections
@@ -553,6 +598,8 @@ export default function AgentDashboard() {
         console.log('[Agent Dashboard] ✅ WebSocket connected successfully');
         setIsConnected(true);
         isConnectingRef.current = false;
+        reconnectAttemptRef.current = 0;
+        clearReconnectTimer();
         showNotification('Connected to chat server', 'success');
         // Load closed tickets
         loadClosedTickets(agentEmail);
@@ -567,20 +614,32 @@ export default function AgentDashboard() {
       };
 
       ws.onclose = (event) => {
-        console.log('[Agent Dashboard] 🔌 WebSocket connection closed');
+        console.log('[Agent Dashboard] 🔌 WebSocket connection closed:', event.code, event.reason || 'no-reason');
         setIsConnected(false);
         isConnectingRef.current = false;
         wsRef.current = null;
         setSocket(null);
 
-        // Attempt to reconnect after a delay
-        if (!event.wasClean) {
-          showNotification('Disconnected. Reconnecting in 5s...', 'error');
-          setTimeout(() => {
-            console.log('[Agent Dashboard] 🔄 Attempting to reconnect...');
-            if (agentEmail) connectWebSocket();
-          }, 5000);
+        if (manualCloseRef.current) return;
+
+        // Auth/policy closes should not loop reconnects.
+        if (event.code === 1008 || event.code === 4001 || event.code === 4003) {
+          showNotification('Connection closed due to authorization. Please sign in again.', 'error');
+          return;
         }
+
+        // Exponential backoff with jitter to avoid reconnect storms.
+        reconnectAttemptRef.current += 1;
+        const attempt = reconnectAttemptRef.current;
+        const backoffMs = Math.min(30000, 1000 * Math.pow(2, attempt - 1));
+        const jitterMs = Math.floor(Math.random() * 1000);
+        const delayMs = backoffMs + jitterMs;
+        showNotification(`Disconnected. Reconnecting in ${Math.ceil(delayMs / 1000)}s...`, 'error');
+        clearReconnectTimer();
+        reconnectTimerRef.current = window.setTimeout(() => {
+          console.log('[Agent Dashboard] 🔄 Attempting to reconnect...');
+          if (agentEmail) connectWebSocket();
+        }, delayMs);
       };
 
       ws.onmessage = (event) => {
@@ -647,8 +706,10 @@ export default function AgentDashboard() {
 
     return () => {
       console.log('[Agent Dashboard] 🧹 Cleanup: Closing WebSocket connection');
+      manualCloseRef.current = true;
+      clearReconnectTimer();
       if (wsRef.current) {
-        wsRef.current.close();
+        wsRef.current.close(1000, 'cleanup');
         wsRef.current = null;
       }
       isConnectingRef.current = false;
@@ -736,18 +797,42 @@ export default function AgentDashboard() {
     setInputMessage('');
   };
 
-  const handleUpdateName = () => {
-    // Update localStorage and trigger auth-change event to sync with Header
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      const user = JSON.parse(userStr);
-      user.name = newName;
-      localStorage.setItem('user', JSON.stringify(user));
-      setAgentUsername(newName);
-      setIsEditingName(false);
+  const handleUpdateName = async () => {
+    const trimmedName = newName.trim();
+    if (!trimmedName || trimmedName.length < 2) {
+      showNotification('Name must be at least 2 characters long', 'error');
+      return;
+    }
 
-      // Dispatch custom event to notify Header component
+    const userStr = localStorage.getItem('user');
+    if (!userStr) return;
+
+    try {
+      const user = JSON.parse(userStr);
+      const response = await fetch(`${getBackendApiUrl()}/api/user/profile/name`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: user.email,
+          name: trimmedName
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update profile');
+      }
+
+      user.name = data.user?.name || trimmedName;
+      localStorage.setItem('user', JSON.stringify(user));
+      setAgentUsername(user.name);
+      setNewName(user.name);
+      setIsEditingName(false);
       window.dispatchEvent(new Event('auth-change'));
+      showNotification('Profile updated successfully', 'success');
+    } catch (error: any) {
+      console.error('Failed to update profile name:', error);
+      showNotification(error.message || 'Failed to update profile', 'error');
     }
   };
 
@@ -1040,61 +1125,65 @@ export default function AgentDashboard() {
         <div className="px-4">
           {currentView === 'chat' && (
             <>
-              {pendingChats.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-2">Waiting Queue</h3>
-                  <div className="space-y-2">
-                    {pendingChats.map(chat => (
-                      <div key={chat.id} className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm hover:shadow-md transition-all group">
-                        <div className="flex justify-between items-start mb-2">
-                          <span className="font-semibold text-gray-900 text-sm">{chat.customer_name}</span>
-                          <span className="text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded-full">
-                            {formatTimeToIST(chat.created_at)}
-                          </span>
-                        </div>
-                        {/* Issue Information */}
-                        {chat.issue_type_label && (
-                          <div className="mb-2 p-2 bg-purple-50 rounded-lg border border-purple-100">
-                            <div className="flex items-start space-x-2">
-                              <span className="text-xs font-medium text-purple-700">Issue:</span>
-                              <span className="text-xs text-purple-600 flex-1">{chat.issue_type_label}</span>
-                            </div>
-                            {chat.issue_category_label && (
-                              <div className="flex items-center space-x-1 mt-1">
-                                <span className="text-[10px] text-purple-500 bg-purple-100 px-2 py-0.5 rounded-full">
-                                  {chat.issue_category_label}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        <button
-                          onClick={() => handleJoinChat(chat.id)}
-                          disabled={acceptingChatId !== null}
-                          className={`w-full text-white text-xs font-medium py-2 rounded-lg transition-colors flex items-center justify-center space-x-1 ${acceptingChatId === chat.id
-                            ? 'bg-amber-400 cursor-wait'
-                            : acceptingChatId !== null
-                              ? 'bg-gray-400 cursor-not-allowed'
-                              : 'bg-amber-500 hover:bg-amber-600'
-                            }`}
-                        >
-                          {acceptingChatId === chat.id ? (
-                            <>
-                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-                              <span>Accepting...</span>
-                            </>
-                          ) : (
-                            <>
-                              <span>Accept Chat</span>
-                              <ChevronRight className="h-3 w-3" />
-                            </>
-                          )}
-                        </button>
+              <div className="mb-6">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-2">Waiting Queue</h3>
+                <div className="space-y-2">
+                  {pendingChats.map(chat => (
+                    <div key={chat.id} className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm hover:shadow-md transition-all group">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="font-semibold text-gray-900 text-sm">{chat.customer_name}</span>
+                        <span className="text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded-full">
+                          {formatTimeToIST(chat.created_at)}
+                        </span>
                       </div>
-                    ))}
-                  </div>
+                      {/* Issue Information */}
+                      {chat.issue_type_label && (
+                        <div className="mb-2 p-2 bg-purple-50 rounded-lg border border-purple-100">
+                          <div className="flex items-start space-x-2">
+                            <span className="text-xs font-medium text-purple-700">Issue:</span>
+                            <span className="text-xs text-purple-600 flex-1">{chat.issue_type_label}</span>
+                          </div>
+                          {chat.issue_category_label && (
+                            <div className="flex items-center space-x-1 mt-1">
+                              <span className="text-[10px] text-purple-500 bg-purple-100 px-2 py-0.5 rounded-full">
+                                {chat.issue_category_label}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      <button
+                        onClick={() => handleJoinChat(chat.id)}
+                        disabled={acceptingChatId !== null}
+                        className={`w-full text-white text-xs font-medium py-2 rounded-lg transition-colors flex items-center justify-center space-x-1 ${acceptingChatId === chat.id
+                          ? 'bg-amber-400 cursor-wait'
+                          : acceptingChatId !== null
+                            ? 'bg-gray-400 cursor-not-allowed'
+                            : 'bg-amber-500 hover:bg-amber-600'
+                          }`}
+                      >
+                        {acceptingChatId === chat.id ? (
+                          <>
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                            <span>Accepting...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Accept Chat</span>
+                            <ChevronRight className="h-3 w-3" />
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  ))}
+                  {pendingChats.length === 0 && (
+                    <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                      <Clock className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                      <p className="text-xs text-gray-400">No pending chats</p>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
 
               <div>
                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-2">Active Chats</h3>
@@ -1274,6 +1363,17 @@ export default function AgentDashboard() {
 
       <div className="flex-1 overflow-y-auto py-4 custom-scrollbar">
         <nav className="space-y-1 px-3">
+          <button
+            onClick={() => setCurrentView('chat')}
+            className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all ${currentView === 'chat'
+              ? 'bg-amber-50 text-amber-700 font-medium border border-amber-100'
+              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+          >
+            <MessageSquare className="h-5 w-5" />
+            <span className="text-sm">Conversations</span>
+          </button>
+
           <button
             onClick={() => setCurrentView('admin_dashboard')}
             className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all ${currentView === 'admin_dashboard'
@@ -1613,7 +1713,10 @@ export default function AgentDashboard() {
               Quick Actions
             </h3>
             <div className="space-y-2">
-              <button className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 rounded-lg transition-all border border-amber-200">
+              <button
+                onClick={() => setIsEditingName(true)}
+                className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 rounded-lg transition-all border border-amber-200"
+              >
                 <span className="flex items-center text-xs font-medium text-gray-900">
                   <Edit2 className="h-3.5 w-3.5 mr-2 text-amber-600" />
                   Edit Profile
@@ -1997,7 +2100,11 @@ export default function AgentDashboard() {
         />
       )}
 
-      {userRole === 'admin' ? renderAdminSidebar() : userRole === 'supervisor' ? renderSupervisorSidebar() : renderSidebar()}
+      {userRole === 'admin'
+        ? (currentView === 'chat' ? renderSidebar() : renderAdminSidebar())
+        : userRole === 'supervisor'
+          ? renderSupervisorSidebar()
+          : renderSidebar()}
 
       {currentView === 'chat' ? (
         <div className="flex-1 flex flex-col bg-white overflow-hidden">
@@ -2135,8 +2242,15 @@ export default function AgentDashboard() {
 
               {/* Close Ticket Dialog */}
               {showCloseDialog && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                  <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
+                <div
+                  className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                  onClick={() => setShowCloseDialog(false)}
+                  role="presentation"
+                >
+                  <div
+                    className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-xl font-bold text-gray-900 flex items-center">
                         <CheckCircle className="h-6 w-6 mr-2 text-green-600" />

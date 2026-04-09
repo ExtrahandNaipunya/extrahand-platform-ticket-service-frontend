@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Book, FileText, HelpCircle, ExternalLink, ChevronRight, Bookmark, Clock, Star, ArrowLeft, Loader2 } from 'lucide-react';
 import { getBackendApiUrl } from '@/lib/apiConfig';
+import { getSupportArticleUrl } from '@/lib/publicSiteUrl';
 
 export default function KnowledgeBasePage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -180,7 +181,9 @@ export default function KnowledgeBasePage() {
                   <div
                     key={article._id || article.id}
                     className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all cursor-pointer group"
-                    onClick={() => window.open(`http://localhost:3004/article/${article._id}`, '_blank')}
+                    onClick={() =>
+                      window.open(getSupportArticleUrl(article._id || article.id), '_blank', 'noopener,noreferrer')
+                    }
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">

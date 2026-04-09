@@ -33,6 +33,7 @@ export default function Chatbot({ isOpen, onClose, sessionId = 'default', initia
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasProcessedInitialMessage = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -56,10 +57,11 @@ export default function Chatbot({ isOpen, onClose, sessionId = 'default', initia
 
   const sendMessageInternal = async (messageText: string) => {
     if (!messageText.trim() || isLoading) return;
+    const trimmedMessage = messageText.trim();
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      text: inputMessage,
+      text: trimmedMessage,
       sender: 'user',
       timestamp: new Date(),
     };
@@ -70,15 +72,18 @@ export default function Chatbot({ isOpen, onClose, sessionId = 'default', initia
     setError(null);
 
     try {
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
       const response = await fetch('/api/chatbot', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: inputMessage,
+          message: trimmedMessage,
           sessionId,
         }),
+        signal: abortController.signal,
       });
 
       const data = await response.json();
@@ -98,6 +103,10 @@ export default function Chatbot({ isOpen, onClose, sessionId = 'default', initia
 
       setMessages((prev) => [...prev, botMessage]);
     } catch (err: any) {
+      if (err?.name === 'AbortError') {
+        setError('Response stopped.');
+        return;
+      }
       console.error('Chat error:', err);
       setError(err.message || 'Failed to send message. Please try again.');
       
@@ -110,8 +119,22 @@ export default function Chatbot({ isOpen, onClose, sessionId = 'default', initia
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
+      abortControllerRef.current = null;
       setIsLoading(false);
     }
+  };
+
+  const stopResponse = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsLoading(false);
+  };
+
+  const handleClose = () => {
+    stopResponse();
+    onClose();
   };
 
   const sendMessage = async (e: React.FormEvent) => {
@@ -135,7 +158,7 @@ export default function Chatbot({ isOpen, onClose, sessionId = 'default', initia
           </div>
         </div>
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="hover:bg-white/20 rounded-full p-1 transition-colors"
         >
           <X className="h-5 w-5" />
@@ -242,6 +265,15 @@ export default function Chatbot({ isOpen, onClose, sessionId = 'default', initia
           >
             <Send className="h-5 w-5" />
           </button>
+          {isLoading && (
+            <button
+              type="button"
+              onClick={stopResponse}
+              className="text-xs px-3 py-2 rounded-full border border-red-300 text-red-600 hover:bg-red-50 transition-colors"
+            >
+              Stop
+            </button>
+          )}
         </div>
       </form>
     </div>
