@@ -10,8 +10,8 @@
   --primary-light: #ffd966;
   --secondary: #3b82f6;
   --accent: #10b981;
-  --eh-surface: #fff9e6;
-  --eh-surface-strong: #fff2cc;
+  --eh-surface: #ffffff;
+  --eh-surface-strong: #f9fafb;
   --eh-border: #ffe699;
   --eh-text: #232323;
   --eh-yellow-50: #fff9e6;
@@ -42,7 +42,7 @@ body.extrahand-theme .bg-gray-50 {
 }
 
 body.extrahand-theme .bg-gray-100 {
-  background-color: var(--eh-yellow-100);
+  background-color: var(--eh-surface-strong);
 }
 
 body.extrahand-theme .border-gray-100,

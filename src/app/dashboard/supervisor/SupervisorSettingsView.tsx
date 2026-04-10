@@ -43,7 +43,7 @@ export default function SupervisorSettingsView() {
 
                     <div className="p-6 flex items-center justify-between">
                         <div className="flex items-center space-x-4">
-                            <div className="p-2 bg-orange-50 text-orange-600 rounded-lg">
+                            <div className="p-2 bg-yellow-50 text-yellow-600 rounded-lg">
                                 <Mail className="h-5 w-5" />
                             </div>
                             <div>

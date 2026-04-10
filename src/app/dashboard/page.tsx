@@ -1013,9 +1013,9 @@ export default function AgentDashboard() {
 
   const renderSidebar = () => (
     <div className={`fixed inset-y-0 left-0 z-40 w-72 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 h-full overflow-hidden transition-transform duration-300 lg:relative lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-      <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-amber-50 to-orange-50">
+      <div className="p-4 border-b border-gray-200 bg-white">
         <div className="flex items-center space-x-3 mb-4">
-          <div className="bg-amber-100 p-2 rounded-lg">
+          <div className="bg-white p-2 rounded-lg border border-gray-200">
             <User className="h-6 w-6 text-amber-600" />
           </div>
           <div className="flex-1 min-w-0">
@@ -1228,7 +1228,7 @@ export default function AgentDashboard() {
         </div>
       </div>
 
-      <div className="p-4 border-t border-gray-200 bg-gray-50">
+      <div className="p-4 border-t border-gray-200 bg-white">
         <button
           onClick={async () => {
             try {
@@ -1256,7 +1256,7 @@ export default function AgentDashboard() {
 
   const renderSupervisorSidebar = () => (
     <div className={`fixed inset-y-0 left-0 z-40 w-72 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 h-full overflow-hidden transition-transform duration-300 lg:relative lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-      <div className="p-4 border-b border-gray-100 flex items-center space-x-3 bg-gradient-to-r from-amber-50 to-orange-50">
+      <div className="p-4 border-b border-gray-100 flex items-center space-x-3 bg-white">
 
         <div>
           <h2 className="font-bold text-gray-900 text-sm">Supervisor Panel</h2>
@@ -1326,7 +1326,7 @@ export default function AgentDashboard() {
         </nav>
       </div>
 
-      <div className="p-4 border-t border-gray-200 bg-gray-50">
+      <div className="p-4 border-t border-gray-200 bg-white">
         <button
           onClick={async () => {
             try {
@@ -1351,8 +1351,8 @@ export default function AgentDashboard() {
 
   const renderAdminSidebar = () => (
     <div className={`fixed inset-y-0 left-0 z-40 w-72 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 h-full overflow-hidden transition-transform duration-300 lg:relative lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-      <div className="p-4 border-b border-gray-100 flex items-center space-x-3 bg-gradient-to-r from-amber-50 to-orange-50">
-        <div className="bg-amber-100 p-2 rounded-lg">
+      <div className="p-4 border-b border-gray-100 flex items-center space-x-3 bg-white">
+        <div className="bg-white p-2 rounded-lg border border-gray-200">
           <Shield className="h-6 w-6 text-amber-600" />
         </div>
         <div>
@@ -1474,7 +1474,7 @@ export default function AgentDashboard() {
         </nav>
       </div>
 
-      <div className="p-4 border-t border-gray-200 bg-gray-50">
+      <div className="p-4 border-t border-gray-200 bg-white">
         <button
           onClick={async () => {
             try {
@@ -1549,7 +1549,7 @@ export default function AgentDashboard() {
                 />
               </div>
               <div className="inline-block ml-4 mt-2">
-                <span className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-amber-50 to-orange-50 text-amber-700 rounded-lg text-xs font-semibold border border-amber-200">
+                <span className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 rounded-lg text-xs font-semibold border border-amber-200">
                   <Award className="h-3 w-3 mr-1.5" />
                   Senior Support Agent
                 </span>
@@ -1715,7 +1715,7 @@ export default function AgentDashboard() {
             <div className="space-y-2">
               <button
                 onClick={() => setIsEditingName(true)}
-                className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 rounded-lg transition-all border border-amber-200"
+                className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-amber-50 to-yellow-50 hover:from-amber-100 hover:to-yellow-100 rounded-lg transition-all border border-amber-200"
               >
                 <span className="flex items-center text-xs font-medium text-gray-900">
                   <Edit2 className="h-3.5 w-3.5 mr-2 text-amber-600" />
@@ -1792,7 +1792,7 @@ export default function AgentDashboard() {
 
           <div className="p-6 flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="p-2 bg-orange-50 text-orange-600 rounded-lg">
+              <div className="p-2 bg-yellow-50 text-yellow-600 rounded-lg">
                 <Mail className="h-5 w-5" />
               </div>
               <div>
@@ -2118,7 +2118,7 @@ export default function AgentDashboard() {
                   >
                     <Menu className="h-6 w-6" />
                   </button>
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 flex items-center justify-center text-amber-600 font-bold">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-r from-amber-100 to-yellow-100 flex items-center justify-center text-amber-600 font-bold">
                     {activeChats.find(c => c.id === selectedSessionId)?.customer_name?.charAt(0) || 'U'}
                   </div>
                   <div>

@@ -91,7 +91,7 @@ export default function KnowledgeBasePage() {
           </button>
 
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center space-x-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-lg flex items-center justify-center flex-shrink-0">
               <Book className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
             </div>
             <span>Knowledge Base</span>

@@ -255,7 +255,7 @@ export default function InquiryDesk() {
     const getPriorityColor = (priority: string) => {
         switch (priority) {
             case 'urgent': return 'text-red-600 bg-red-50 border-red-100';
-            case 'high': return 'text-orange-600 bg-orange-50 border-orange-100';
+            case 'high': return 'text-yellow-600 bg-yellow-50 border-yellow-100';
             case 'medium': return 'text-amber-600 bg-amber-50 border-amber-100';
             case 'low': return 'text-green-600 bg-green-50 border-green-100';
             default: return 'text-gray-600 bg-gray-50 border-gray-100';

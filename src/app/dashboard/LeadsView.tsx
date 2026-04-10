@@ -182,7 +182,7 @@ const LeadsView = ({ viewType, initialStatus = 'All', agentEmail, onNavigate }: 
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center">
-                                                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center text-amber-700 font-bold mr-3">
+                                                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-amber-100 to-yellow-100 flex items-center justify-center text-amber-700 font-bold mr-3">
                                                         {lead.firstName.charAt(0)}{lead.lastName.charAt(0)}
                                                     </div>
                                                     <div>

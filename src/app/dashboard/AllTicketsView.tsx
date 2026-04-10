@@ -169,7 +169,7 @@ const AllTicketsView = ({ onNavigate, userEmail, userName }: AllTicketsViewProps
         switch (priority) {
             case 'urgent': return 'bg-red-500 text-white';
             case 'high': return 'bg-red-100 text-red-700';
-            case 'medium': return 'bg-orange-100 text-orange-700';
+            case 'medium': return 'bg-yellow-100 text-yellow-700';
             case 'low': return 'bg-blue-100 text-blue-700';
             default: return 'bg-gray-100 text-gray-700';
         }
@@ -329,7 +329,7 @@ const AllTicketsView = ({ onNavigate, userEmail, userName }: AllTicketsViewProps
                                         <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Assigned To</div>
                                         {ticket.agent_email ? (
                                             <div className="flex items-center space-x-3">
-                                                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-xs font-black shadow-sm">
+                                                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center text-white text-xs font-black shadow-sm">
                                                     {ticket.agent_email.charAt(0).toUpperCase()}
                                                 </div>
                                                 <span className="text-sm font-bold text-gray-700">{ticket.agent_email.split('@')[0]}</span>
@@ -424,7 +424,7 @@ const AllTicketsView = ({ onNavigate, userEmail, userName }: AllTicketsViewProps
                                     <section className="mb-10">
                                         <h4 className="text-[10px] font-black text-amber-600 uppercase tracking-[0.25em] mb-4">Customer Segment</h4>
                                         <div className="flex items-center space-x-4 bg-gray-50 p-6 rounded-[2rem]">
-                                            <div className="h-16 w-16 rounded-[1.25rem] bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-2xl font-black shadow-xl">
+                                            <div className="h-16 w-16 rounded-[1.25rem] bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center text-white text-2xl font-black shadow-xl">
                                                 {selectedTicket.customer_name.charAt(0).toUpperCase()}
                                             </div>
                                             <div>

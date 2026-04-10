@@ -149,7 +149,7 @@ export default function Header() {
                             alt="ExtraHand Logo"
                             width={40}
                             height={40}
-                            className="rounded-xl shadow-lg shadow-amber-200/50 group-hover:shadow-amber-300/60 transition-all"
+                            className="rounded-xl transition-all"
                         />
                         <div className="hidden sm:block">
                             <h1 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
@@ -171,7 +171,7 @@ export default function Header() {
                                 {/* Notifications Button */}
                                 <Link
                                     href="/notifications"
-                                    className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all"
+                                    className="relative p-2 text-yellow-700 hover:text-yellow-800 bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 rounded-lg transition-all"
                                 >
                                     <Bell className="h-5 w-5" />
                                     <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
@@ -181,9 +181,9 @@ export default function Header() {
                                 <div className="relative" ref={dropdownRef}>
                                     <button
                                         onClick={() => setShowDropdown(!showDropdown)}
-                                        className="flex items-center space-x-2 p-1.5 pr-3 rounded-xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-200"
+                                        className="flex items-center space-x-2 p-1.5 pr-3 rounded-xl bg-yellow-50/70 hover:bg-yellow-100/80 transition-all border border-yellow-200"
                                     >
-                                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-sm font-bold shadow-sm overflow-hidden">
+                                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-400 to-amber-400 flex items-center justify-center text-white text-sm font-bold shadow-sm overflow-hidden">
                                             {profileImage ? (
                                                 <img
                                                     src={profileImage}
@@ -211,7 +211,7 @@ export default function Header() {
                                             <div className="px-4 py-3 border-b border-gray-100">
                                                 <p className="text-sm font-semibold text-gray-900">{user.name || user.email}</p>
                                                 <p className="text-xs text-gray-500 truncate">{user.email}</p>
-                                                <span className="inline-block mt-1 px-2 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-700 rounded-full">
+                                                <span className="inline-block mt-1 px-2 py-0.5 text-[10px] font-medium bg-yellow-100 text-yellow-700 rounded-full">
                                                     {getRoleDisplayName(user.role)}
                                                 </span>
                                             </div>

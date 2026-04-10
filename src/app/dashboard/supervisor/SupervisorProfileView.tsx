@@ -127,7 +127,7 @@ export default function SupervisorProfileView({ user, onUpdateUser }: Supervisor
                                 />
                             </div>
                             <div className="inline-block ml-4 mt-2">
-                                <span className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-amber-50 to-orange-50 text-amber-700 rounded-lg text-xs font-semibold border border-amber-200">
+                                <span className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 rounded-lg text-xs font-semibold border border-amber-200">
                                     <Award className="h-3 w-3 mr-1.5" />
                                     Supervisor
                                 </span>
